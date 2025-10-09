@@ -1,0 +1,45 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Poetry
+.poetry/
+poetry.lock
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
+*.db
+*.sqlite
+
+# FastAPI docs cache (if any generated)
+docs/_build/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Alembic migration scripts cache (optional)
+alembic/versions/*.pyc

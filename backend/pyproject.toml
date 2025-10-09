@@ -1,0 +1,33 @@
+[project]
+name = "felend"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "EgorkaKv",email = "yehor.kvasenko@gmail.com"}
+]
+dynamic = []
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard] (>=0.118.2,<0.119.0)",
+    "uvicorn (>=0.37.0,<0.38.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)",
+    "sqlalchemy (>=2.0.43,<3.0.0)",
+    "alembic (>=1.16.5,<2.0.0)",
+    "psycopg2-binary (>=2.9.10,<3.0.0)",
+    "python-jose[cryptography] (>=3.3.0,<4.0.0)",
+    "passlib[bcrypt] (>=1.7.4,<2.0.0)",
+    "python-multipart (>=0.0.19,<1.0.0)",
+    "google-api-python-client (>=2.147.0,<3.0.0)",
+    "google-auth-httplib2 (>=0.2.0,<1.0.0)",
+    "google-auth-oauthlib (>=1.2.1,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry]
+package-mode = false
