@@ -7,6 +7,8 @@ from app.core.exceptions import AuthenticationException
 from app.models import User
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
+from app.services.survey_service import SurveyService
+
 
 # Security scheme для JWT токенов
 security = HTTPBearer()
@@ -26,6 +28,10 @@ def get_user_service(db: Session = Depends(get_db)) -> UserService:
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     return AuthService(db)
+
+# Dependency для получения survey_service с инжектированной сессией
+def get_survey_service(db: Session = Depends(get_db)) -> SurveyService:
+    return SurveyService(db)
 
 def get_current_user(
     auth_service: AuthService = Depends(get_auth_service),
