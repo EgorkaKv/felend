@@ -3,10 +3,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
-from app.models import User
-from app.services.auth_service import auth_service
 from app.core.exceptions import AuthenticationException
-
+from app.models import User
+from app.services.auth_service import AuthService
+from app.services.user_service import UserService
 
 # Security scheme для JWT токенов
 security = HTTPBearer()
@@ -20,15 +20,21 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+def get_user_service(db: Session = Depends(get_db)) -> UserService:
+    return UserService(db)
+
+
+def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
+    return AuthService(db)
 
 def get_current_user(
-    db: Session = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> User:
     """Dependency для получения текущего авторизованного пользователя"""
     try:
         token = credentials.credentials
-        user = auth_service.get_current_user(db, token)
+        user = auth_service.get_current_user(token)
         return user
     except AuthenticationException as e:
         raise HTTPException(
@@ -50,16 +56,15 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
 
 # Опциональная авторизация (может быть None)
 def get_current_user_optional(
-    db: Session = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> User | None:
     """Dependency для получения пользователя (опционально)"""
     if not credentials:
         return None
-    
     try:
         token = credentials.credentials
-        user = auth_service.get_current_user(db, token)
+        user = auth_service.get_current_user(token)
         return user if user.is_active else None
     except AuthenticationException:
         return None
