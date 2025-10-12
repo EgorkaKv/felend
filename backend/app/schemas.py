@@ -1,0 +1,226 @@
+from pydantic import BaseModel, EmailStr, HttpUrl, Field
+from typing import Optional, List
+from datetime import datetime
+from app.models import SurveyStatus, TransactionType
+
+
+# Auth schemas
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    full_name: str = Field(..., min_length=1, max_length=255)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+
+class TokenRefresh(BaseModel):
+    refresh_token: str
+
+
+# User schemas
+class UserProfile(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    balance: int
+    respondent_code: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
+
+
+# Google Account schemas
+class GoogleAccountDetail(BaseModel):
+    id: int
+    email: str
+    name: str
+    is_primary: bool
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class GoogleAccountCreate(BaseModel):
+    google_id: str
+    email: str
+    name: str
+    access_token: str
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[datetime] = None
+    is_primary: bool = False
+
+
+class GoogleAccountUpdate(BaseModel):
+    name: Optional[str] = None
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[datetime] = None
+    is_primary: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+# Survey schemas
+class SurveyCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    google_account_id: int = Field(..., description="ID Google аккаунта для создания опроса")
+    google_form_url: HttpUrl
+    reward_per_response: int = Field(..., ge=1, le=50)
+    responses_needed: Optional[int] = Field(None, ge=1)
+    max_responses_per_user: int = Field(1, ge=1, le=10)
+    collects_emails: bool = True
+
+
+class SurveyUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    reward_per_response: Optional[int] = Field(None, ge=1, le=50)
+    responses_needed: Optional[int] = Field(None, ge=1)
+    max_responses_per_user: Optional[int] = Field(None, ge=1, le=10)
+    status: Optional[SurveyStatus] = None
+
+
+class SurveyListItem(BaseModel):
+    id: int
+    title: str
+    description: Optional[str]
+    author_name: str
+    reward_per_response: int
+    total_responses: int
+    responses_needed: Optional[int]
+    questions_count: int
+    can_participate: bool
+    my_responses_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class SurveyDetail(BaseModel):
+    id: int
+    title: str
+    description: Optional[str]
+    author_name: str
+    reward_per_response: int
+    total_responses: int
+    responses_needed: Optional[int]
+    questions_count: int
+    google_form_url: str
+    collects_emails: bool
+    max_responses_per_user: int
+    can_participate: bool
+    my_responses_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class MySurveyDetail(BaseModel):
+    id: int
+    title: str
+    description: Optional[str]
+    status: SurveyStatus
+    google_form_url: str
+    reward_per_response: int
+    responses_needed: Optional[int]
+    max_responses_per_user: int
+    total_responses: int
+    total_spent: int
+    questions_count: int
+    collects_emails: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Survey participation schemas
+class SurveyStartResponse(BaseModel):
+    google_form_url: str
+    respondent_code: Optional[str] = None
+    instructions: str
+
+
+class SurveyVerifyResponse(BaseModel):
+    verified: bool
+    reward_earned: int = 0
+    new_balance: int
+    message: str
+
+
+# Survey Response schemas
+class SurveyResponseCreate(BaseModel):
+    survey_id: int
+    respondent_id: Optional[int] = None
+    google_response_id: Optional[str] = None
+
+
+class SurveyResponseUpdate(BaseModel):
+    is_verified: Optional[bool] = None
+    reward_paid: Optional[bool] = None
+    
+
+class SurveyResponseDetail(BaseModel):
+    id: int
+    survey_id: int
+    respondent_id: int
+    is_verified: bool
+    reward_paid: bool
+    started_at: datetime
+    completed_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+
+# Transaction schemas
+class TransactionItem(BaseModel):
+    id: int
+    transaction_type: TransactionType
+    amount: int
+    balance_after: int
+    description: str
+    created_at: datetime
+    related_survey: Optional[dict] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Response wrappers
+class ApiResponse(BaseModel):
+    success: bool = True
+    message: Optional[str] = None
+    data: Optional[dict] = None
+
+
+class ListResponse(BaseModel):
+    items: List[dict]
+    total: int
+    page: int = 1
+    per_page: int = 50
+
+
+# Error schemas
+class ErrorResponse(BaseModel):
+    success: bool = False
+    error: str
+    details: Optional[dict] = None
