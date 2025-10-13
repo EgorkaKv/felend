@@ -1,7 +1,9 @@
 from typing import List, Dict, Any, Optional
+from fastapi import Depends
 from sqlalchemy.orm import Session
 from urllib.parse import urlparse
 import re
+from app.api.deps import get_google_accounts_service
 from app.models import Survey, SurveyStatus
 from app.repositories.survey_repository import survey_repository
 from app.repositories.user_repository import user_repository
@@ -47,17 +49,18 @@ class SurveyService:
             "is_valid": True
         }
     
-    async def validate_google_form_access(self, url: str, access_token: str) -> Dict[str, Any]:
+    async def validate_google_form_access(
+        self, url: str, access_token: str, google_forms_service = Depends(get_google_accounts_service)
+    ) -> Dict[str, Any]:
         """Валидировать доступ к Google Forms через API"""
-        from app.services.google_service import GoogleFormsService, get_google_forms_service
         
         # Извлечь ID формы из URL
-        form_id = GoogleFormsService.extract_form_id_from_url(url)
+        form_id = google_forms_service.extract_form_id_from_url(url)
         if not form_id:
             raise ValidationException("Invalid Google Forms URL format")
         
         # Создать сервис и проверить доступ
-        forms_service = get_google_forms_service(access_token)
+        forms_service = google_forms_service
         
         try:
             form_info = await forms_service.get_form_info(form_id)

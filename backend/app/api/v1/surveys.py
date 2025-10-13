@@ -8,7 +8,6 @@ from app.schemas import (
     SurveyDetail, MySurveyDetail, ApiResponse
 )
 from app.models import User
-from app.services.survey_service import survey_service
 from app.services.survey_service import SurveyService
 from app.core.exceptions import (
     SurveyNotFoundException, AuthorizationException, 

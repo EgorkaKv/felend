@@ -1,9 +1,16 @@
-from typing import Generic, TypeVar, Type, Optional, List, Any, Dict
+from typing import Generic, TypeVar, Type, Optional, List, Any, Dict, Protocol
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from pydantic import BaseModel
 
-ModelType = TypeVar("ModelType")
+
+class HasId(Protocol):
+    """Protocol для объектов с id атрибутом"""
+    id: int
+
+
+# Определяем базовый тип для моделей SQLAlchemy
+ModelType = TypeVar("ModelType", bound=HasId)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 

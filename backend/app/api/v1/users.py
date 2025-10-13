@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends
 from typing import List
 from app.api.deps import get_db, get_current_active_user, get_user_service
 from app.schemas import UserProfile, UserUpdate, TransactionItem
-from app.models import User, BalanceTransaction
-from app.services.user_service import user_service
+from app.models import User
+
 
 
 router = APIRouter(prefix="/users", tags=["Users"])

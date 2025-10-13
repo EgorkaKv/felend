@@ -44,8 +44,8 @@ class UserNotFoundException(NotFoundException):
 
 
 class UserAlreadyExistsException(ConflictException):
-    def __init__(self):
-        super().__init__("User with this email already exists")
+    def __init__(self, message: str = "User with this email already exists"):
+        super().__init__(message)
 
 
 class GoogleAPIException(FelendException):

@@ -7,8 +7,8 @@ import logging
 
 from app.core.config import settings
 from app.core.exceptions import FelendException
-from app.api.v1 import auth, users, surveys
-# from app.api.v1 import google, participation
+from app.api.v1 import auth, google_auth, users, surveys
+# from app.api.v1 import google, participation, google_accounts, google_forms
 # if settings.DEBUG:
     # from app.api.v1 import dev
 
@@ -99,7 +99,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(surveys.router, prefix="/api/v1")
-# app.include_router(google.router, prefix="/api/v1")
+app.include_router(google_auth.router, prefix="/api/v1")
+
+# app.include_router(google_accounts.router, prefix="/api/v1")
+# app.include_router(google_forms.router, prefix="/api/v1")
+
 # app.include_router(participation.router, prefix="/api/v1")
 
 # Подключаем dev endpoints только в режиме разработки

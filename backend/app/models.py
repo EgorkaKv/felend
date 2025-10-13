@@ -1,9 +1,11 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SQLEnum
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from app.core.database import Base
 import enum
+from typing import Optional
+from datetime import datetime
 
 
 class TransactionType(enum.Enum):
@@ -22,18 +24,18 @@ class SurveyStatus(enum.Enum):
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=True)  # может быть None для Google auth
-    full_name = Column(String(255), nullable=False)
-    balance = Column(Integer, default=0)  # баллы пользователя
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # может быть None для Google auth
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    balance: Mapped[int] = mapped_column(Integer, default=0)  # баллы пользователя
     
     # Постоянный код респондента для каждого пользователя
-    respondent_code = Column(String(20), unique=True, nullable=False)  # RESP_123456789
+    respondent_code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)  # RESP_123456789
     
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Связи
     google_accounts = relationship("GoogleAccount", back_populates="user")
@@ -44,25 +46,25 @@ class User(Base):
 class GoogleAccount(Base):
     __tablename__ = "google_account"
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     # Google OAuth данные
-    google_id = Column(String(255), unique=True, nullable=False, index=True)  # Google user ID
-    email = Column(String(255), nullable=False, index=True)  # Google email
-    name = Column(String(255), nullable=False)  # Google display name
+    google_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)  # Google user ID
+    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)  # Google email
+    name: Mapped[str] = mapped_column(String(255), nullable=False)  # Google display name
     
     # Google API токены
-    access_token = Column(Text, nullable=False)
-    refresh_token = Column(Text, nullable=True)
-    token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    access_token: Mapped[str] = mapped_column(Text, nullable=False)
+    refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Статус аккаунта
-    is_primary = Column(Boolean, default=False)  # основной Google аккаунт для пользователя
-    is_active = Column(Boolean, default=True)
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)  # основной Google аккаунт для пользователя
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Связи
     user = relationship("User", back_populates="google_accounts")
@@ -72,31 +74,31 @@ class GoogleAccount(Base):
 class Survey(Base):
     __tablename__ = "surveys"
     
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    google_account_id = Column(Integer, ForeignKey("google_account.id", ondelete="CASCADE"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    google_account_id: Mapped[int] = mapped_column(Integer, ForeignKey("google_account.id", ondelete="CASCADE"), nullable=False)
     
     # Google Forms интеграция
-    google_form_id = Column(String(255), unique=True, nullable=False)  # ID Google формы
-    google_form_url = Column(String(1000), nullable=False)  # Ссылка на форму
-    google_responses_url = Column(String(1000), nullable=True)  # Ссылка на ответы
+    google_form_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)  # ID Google формы
+    google_form_url: Mapped[str] = mapped_column(String(1000), nullable=False)  # Ссылка на форму
+    google_responses_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)  # Ссылка на ответы
     
     # Метаданные формы
-    questions_count = Column(Integer, nullable=False, default=0)  # количество вопросов
-    question_types = Column(JSONB, nullable=True)  # типы вопросов в JSON формате
+    questions_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # количество вопросов
+    question_types: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # типы вопросов в JSON формате
     # Пример: {"questions": [{"type": "text", "required": true}, {"type": "choice", "options": ["Да", "Нет"]}]}
     
     # Система баллов и статус
-    reward_per_response = Column(Integer, nullable=False)  # баллы за прохождение
-    status = Column(SQLEnum(SurveyStatus), default=SurveyStatus.DRAFT)
+    reward_per_response: Mapped[int] = mapped_column(Integer, nullable=False)  # баллы за прохождение
+    status: Mapped[SurveyStatus] = mapped_column(SQLEnum(SurveyStatus), default=SurveyStatus.DRAFT)
     
     # Статистика
-    total_responses = Column(Integer, default=0)  # общее количество ответов
-    responses_needed = Column(Integer, nullable=True)  # желаемое количество ответов
+    total_responses: Mapped[int] = mapped_column(Integer, default=0)  # общее количество ответов
+    responses_needed: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # желаемое количество ответов
     
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     # Связи
     google_account = relationship("GoogleAccount", back_populates="surveys")
@@ -107,21 +109,21 @@ class Survey(Base):
 class SurveyResponse(Base):
     __tablename__ = "survey_responses"
     
-    id = Column(Integer, primary_key=True, index=True)
-    survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=False)
-    respondent_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    survey_id: Mapped[int] = mapped_column(Integer, ForeignKey("surveys.id"), nullable=False)
+    respondent_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Google Forms данные
-    google_response_id = Column(String(255), unique=True, nullable=True)  # ID ответа в Google Forms
-    google_timestamp = Column(DateTime(timezone=True), nullable=True)  # время из Google Forms
+    google_response_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)  # ID ответа в Google Forms
+    google_timestamp: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # время из Google Forms
     
     # Метаданные
-    is_verified = Column(Boolean, default=False)  # проверен ли ответ
-    reward_paid = Column(Boolean, default=False)  # выплачена ли награда
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False)  # проверен ли ответ
+    reward_paid: Mapped[bool] = mapped_column(Boolean, default=False)  # выплачена ли награда
     
     # Временные метки
-    started_at = Column(DateTime(timezone=True), server_default=func.now())  # когда начал участие
-    completed_at = Column(DateTime(timezone=True), nullable=True)  # когда завершил и получил баллы
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())  # когда начал участие
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # когда завершил и получил баллы
     
     # Связи
     survey = relationship("Survey", back_populates="responses")
@@ -131,14 +133,14 @@ class SurveyResponse(Base):
 class BalanceTransaction(Base):
     __tablename__ = "balance_transactions"
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    transaction_type = Column(SQLEnum(TransactionType), nullable=False)
-    amount = Column(Integer, nullable=False)  # может быть отрицательным для трат
-    balance_after = Column(Integer, nullable=False)  # баланс после транзакции
-    description = Column(String(500), nullable=True)  # описание транзакции
-    related_survey_id = Column(Integer, ForeignKey("surveys.id"), nullable=True)  # связанный опрос
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    transaction_type: Mapped[TransactionType] = mapped_column(SQLEnum(TransactionType), nullable=False)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)  # может быть отрицательным для трат
+    balance_after: Mapped[int] = mapped_column(Integer, nullable=False)  # баланс после транзакции
+    description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # описание транзакции
+    related_survey_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("surveys.id"), nullable=True)  # связанный опрос
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     
     # Связи
     user = relationship("User", back_populates="transactions")
