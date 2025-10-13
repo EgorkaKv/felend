@@ -27,10 +27,6 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def get_balance_service(db: Session = Depends(get_db)) -> BalanceService:
-    return BalanceService(db)
-
-
 def get_participation_service(db: Session = Depends(get_db)) -> ParticipationService:
     return ParticipationService(db)
 
@@ -42,30 +38,35 @@ def get_user_service(db: Session = Depends(get_db)) -> UserService:
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     return AuthService(db)
 
+
 # Dependency для получения survey_service с инжектированной сессией
 def get_survey_service(db: Session = Depends(get_db)) -> SurveyService:
     return SurveyService(db)
 
+
 def get_google_auth_service(db: Session = Depends(get_db)) -> GoogleAuthService:
     return GoogleAuthService(db)
+
 
 def get_google_accounts_service(db: Session = Depends(get_db)) -> GoogleAccountsService:
     return GoogleAccountsService(db)
 
+
 def get_google_forms_service(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> object:
     # Возвращает GoogleFormsService или mock, используя access_token текущего пользователя
     if not current_user.google_access_token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Сначала подключите Google аккаунт"
+            detail="Сначала подключите Google аккаунт",
         )
     return get_google_forms_service(current_user.google_access_token)
 
+
 def get_current_user(
     auth_service: AuthService = Depends(get_auth_service),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> User:
     """Dependency для получения текущего авторизованного пользователя"""
     try:
@@ -84,8 +85,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
     """Dependency для получения активного пользователя"""
     if current_user.is_active is not True:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
         )
     return current_user
 
@@ -93,7 +93,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
 # Опциональная авторизация (может быть None)
 def get_current_user_optional(
     auth_service: AuthService = Depends(get_auth_service),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> User | None:
     """Dependency для получения пользователя (опционально)"""
     if not credentials:

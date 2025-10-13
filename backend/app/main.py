@@ -7,10 +7,18 @@ import logging
 
 from app.core.config import settings
 from app.core.exceptions import FelendException
-from app.api.v1 import auth, google_auth, users, surveys
-# from app.api.v1 import google, participation, google_accounts, google_forms
+from app.api.v1 import (
+    auth,
+    google_auth,
+    users,
+    surveys,
+    participation,
+    google_accounts,
+    google_forms,
+)
+
 # if settings.DEBUG:
-    # from app.api.v1 import dev
+# from app.api.v1 import dev
 
 
 # Настройка логирования
@@ -31,7 +39,10 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ],  # React dev servers
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,16 +53,18 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
-    
+
     # Логируем входящий запрос
     logger.info(f"Incoming request: {request.method} {request.url}")
-    
+
     response = await call_next(request)
-    
+
     # Логируем время выполнения
     process_time = time.time() - start_time
-    logger.info(f"Request completed in {process_time:.4f}s with status {response.status_code}")
-    
+    logger.info(
+        f"Request completed in {process_time:.4f}s with status {response.status_code}"
+    )
+
     return response
 
 
@@ -60,11 +73,7 @@ async def log_requests(request: Request, call_next):
 async def felend_exception_handler(request: Request, exc: FelendException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "success": False,
-            "error": exc.detail,
-            "code": exc.status_code
-        }
+        content={"success": False, "error": exc.detail, "code": exc.status_code},
     )
 
 
@@ -74,11 +83,7 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
     logger.error(f"Database integrity error: {exc}")
     return JSONResponse(
         status_code=400,
-        content={
-            "success": False,
-            "error": "Data integrity violation",
-            "code": 400
-        }
+        content={"success": False, "error": "Data integrity violation", "code": 400},
     )
 
 
@@ -87,11 +92,7 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "success": False,
-            "error": exc.detail,
-            "code": exc.status_code
-        }
+        content={"success": False, "error": exc.detail, "code": exc.status_code},
     )
 
 
@@ -100,11 +101,9 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(surveys.router, prefix="/api/v1")
 app.include_router(google_auth.router, prefix="/api/v1")
-
-# app.include_router(google_accounts.router, prefix="/api/v1")
-# app.include_router(google_forms.router, prefix="/api/v1")
-
-# app.include_router(participation.router, prefix="/api/v1")
+app.include_router(google_accounts.router, prefix="/api/v1")
+app.include_router(google_forms.router, prefix="/api/v1")
+app.include_router(participation.router, prefix="/api/v1")
 
 # Подключаем dev endpoints только в режиме разработки
 # if settings.DEBUG:
@@ -114,27 +113,16 @@ app.include_router(google_auth.router, prefix="/api/v1")
 # Базовые эндпоинты
 @app.get("/")
 async def root():
-    return {
-        "message": "Felend API",
-        "version": settings.VERSION,
-        "status": "running"
-    }
+    return {"message": "Felend API", "version": settings.VERSION, "status": "running"}
 
 
 @app.get("/health")
 async def health_check():
     """Health check эндпоинт"""
-    return {
-        "status": "healthy",
-        "timestamp": time.time()
-    }
+    return {"status": "healthy", "timestamp": time.time()}
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.DEBUG
-    )
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)
