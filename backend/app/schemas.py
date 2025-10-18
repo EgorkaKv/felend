@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
-from typing import Any, Optional, List, Literal
+from typing import Optional, List, Literal, Any
 from datetime import datetime
 from app.models import SurveyStatus, TransactionType
 
@@ -229,14 +229,14 @@ class ErrorResponse(BaseModel):
     details: Optional[dict] = None
 
 
-class FormInfo:
+class FormInfo(BaseModel):
     title: str
     documentTitle: str
-    description: Optional[str]
+    description: Optional[str] = None
 
 
-class QuizSettings:
-    isQuiz: Optional[bool]
+class QuizSettings(BaseModel):
+    isQuiz: Optional[bool] = None
 
 
 type EmailCollectionType = Optional[
@@ -248,13 +248,13 @@ type EmailCollectionType = Optional[
         ]
     ]
 
-class FormSettings:
-    quizSettings: Optional[QuizSettings]
+class FormSettings(BaseModel):
+    quizSettings: Optional[QuizSettings] = None
     emailCollectionType: EmailCollectionType = "EMAIL_COLLECTION_TYPE_UNSPECIFIED"
-    collect_emails: Optional[bool] = True if emailCollectionType in ["VERIFIED", "RESPONDER_INPUT"] else False
+    collect_emails: Optional[bool] = None
 
 
-class FormItem:
+class FormItem(BaseModel):
     itemId: str
     title: str
     description: Optional[str] = None
@@ -267,13 +267,13 @@ class FormItem:
     videoItem: Optional[dict[str, Any]] = None  # Можно расширить для видео
 
 
-class PublishState:
-    isPublished: Optional[bool]
-    isAcceptingResponses: Optional[bool]
+class PublishState(BaseModel):
+    isPublished: Optional[bool] = None
+    isAcceptingResponses: Optional[bool] = None
 
 
-class PublishSettings:
-    publishState: Optional[PublishState]
+class PublishSettings(BaseModel):
+    publishState: Optional[PublishState] = None
 
 
 class GoogleForm(BaseModel):

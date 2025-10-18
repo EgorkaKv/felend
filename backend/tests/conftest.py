@@ -114,6 +114,21 @@ def second_test_user(db_session):
 
 
 @pytest.fixture
+def second_test_user_token(second_test_user, db_session):
+    """JWT токен для второго тестового пользователя"""
+    from app.services.auth_service import AuthService
+    auth_service = AuthService(db_session)
+    access_token, refresh_token = auth_service.create_tokens(second_test_user)
+    return access_token
+
+
+@pytest.fixture
+def second_auth_headers(second_test_user_token):
+    """Заголовки авторизации для второго пользователя"""
+    return {"Authorization": f"Bearer {second_test_user_token}"}
+
+
+@pytest.fixture
 def test_google_account_data():
     """Данные для создания тестового Google аккаунта"""
     return {

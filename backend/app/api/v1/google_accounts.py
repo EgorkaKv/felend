@@ -11,11 +11,12 @@ from app.models import User
 from datetime import datetime, timezone
 import logging
 
-router = APIRouter()
+
+router = APIRouter(prefix="/google-accounts", tags=["Google-accounts"])
 logger = logging.getLogger(__name__)
 
 
-@router.get("/google-accounts")
+@router.get("")
 async def list_google_accounts(
     current_user: User = Depends(get_current_active_user),
     google_accounts_service: GoogleAccountsService = Depends(
@@ -50,7 +51,7 @@ async def list_google_accounts(
         )
 
 
-@router.post("/google-accounts/{account_id}/set-primary")
+@router.post("/{account_id}/set-primary")
 async def set_primary_google_account(
     account_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -86,7 +87,7 @@ async def set_primary_google_account(
         )
 
 
-@router.post("/google-accounts/{account_id}/disconnect")
+@router.post("/{account_id}/disconnect")
 async def disconnect_google_account(
     account_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -117,6 +118,19 @@ async def disconnect_google_account(
         )
 
 
+def is_token_valid(token_expires_at):
+    """
+    Проверяет, действителен ли токен (не истек ли срок действия)
+    """
+    if not token_expires_at:
+        return False
+    # If token_expires_at is naive (no tzinfo), assume it's in UTC to avoid
+    # comparing offset-naive and offset-aware datetimes.
+    if token_expires_at.tzinfo is None or token_expires_at.tzinfo.utcoffset(token_expires_at) is None:
+        token_expires_at = token_expires_at.replace(tzinfo=timezone.utc)
+    return token_expires_at > datetime.now(timezone.utc)
+
+
 @router.get("/google/status")
 async def google_connection_status(
     current_user: User = Depends(get_current_active_user),
@@ -135,11 +149,7 @@ async def google_connection_status(
             current_user.id
         )
         has_google_accounts = len(google_accounts) > 0
-        primary_token_valid = False
-        if primary_account and primary_account.token_expires_at:
-            primary_token_valid = primary_account.token_expires_at > datetime.now(
-                timezone.utc
-            )
+        primary_token_valid = is_token_valid(primary_account.token_expires_at) if primary_account else False
         return {
             "google_connected": has_google_accounts,
             "total_accounts": len(google_accounts),
