@@ -3,11 +3,13 @@ Google OAuth endpoints (login, callback)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from app.api.deps import get_google_auth_service, get_current_active_user
+from app.api.deps import get_google_accounts_service, get_google_auth_service, get_current_active_user
 from app.models import User
 from app.core.exceptions import GoogleAPIException
 
 import logging
+
+from app.services.google_auth_service import GoogleAuthService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 @router.get("/auth/google/login")
 async def google_login(
     current_user: User = Depends(get_current_active_user),
-    google_auth_service=Depends(get_google_auth_service),
+    google_auth_service: GoogleAuthService=Depends(get_google_auth_service),
 ):
     """
     Инициировать Google OAuth flow для подключения аккаунта к существующему пользователю
@@ -46,22 +48,24 @@ async def google_login(
 async def google_callback(
     code: str = Query(..., description="Authorization code from Google"),
     state: str = Query(..., description="JWT state with user_id"),
+    scope: str = Query(..., description="Scopes requested during authorization"),
     google_auth_service=Depends(get_google_auth_service),
+    google_accounts_service=Depends(get_google_accounts_service)
 ):
     """
     Callback endpoint для обработки ответа от Google OAuth
     """
 
     try:
-        result = google_auth_service.link_google_account(
-            code, state, google_auth_service
+        result = await google_auth_service.link_google_account(
+            code, state, google_accounts_service
         )
 
         return result
 
     except GoogleAPIException as e:
         logger.error(f"Google API error in callback: {e}")
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     except Exception as e:
         logger.error(f"Unexpected error in Google callback: {e}")

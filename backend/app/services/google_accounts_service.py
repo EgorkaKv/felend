@@ -34,23 +34,26 @@ class GoogleAccountsService:
         existing_google_account = self.google_account_repo.get_by_google_id(
             self.db, google_id
         )
-
+        print(11)
         if existing_google_account:
-
+            print(12)
             if existing_google_account.user_id != user_id:
+                print(13)
                 raise UserAlreadyExistsException(
                     "This Google account is already connected to another user"
                 )
-
-            return self.google_account_repo.update_tokens(
+            print(14) 
+            temp = self.google_account_repo.update_tokens(
                 db=self.db,
                 account_id=existing_google_account.id,
                 access_token=access_token,
                 refresh_token=refresh_token,
                 token_expires_at=token_expires_at,
             )
-
-        return self.google_account_repo.create_google_account(
+            print(15)
+            return temp
+        print(16)
+        temp = self.google_account_repo.create_google_account(
             db=self.db,
             user_id=user_id,
             google_id=google_id,
@@ -60,6 +63,8 @@ class GoogleAccountsService:
             refresh_token=refresh_token,
             token_expires_at=token_expires_at,
         )
+        print(17)
+        return temp
 
     def register_or_login_google_user(
         self,

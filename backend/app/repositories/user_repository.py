@@ -15,9 +15,7 @@ class UserRepository(BaseRepository[User, UserRegister, UserUpdate]):
         """Получить пользователя по email"""
         return db.query(User).filter(User.email == email).first()
 
-    def get_by_google_id(self, db: Session, google_id: str) -> Optional[User]:
-        """Получить пользователя по Google ID"""
-        return db.query(User).filter(User.google_id == google_id).first()
+
 
     def get_by_respondent_code(self, db: Session, respondent_code: str) -> Optional[User]:
         """Получить пользователя по коду респондента"""
@@ -28,8 +26,7 @@ class UserRepository(BaseRepository[User, UserRegister, UserUpdate]):
         db: Session, 
         email: str, 
         full_name: str, 
-        password: Optional[str] = None,
-        google_id: Optional[str] = None
+        password: Optional[str] = None
     ) -> User:
         """Создать нового пользователя"""
         # Генерируем временный код респондента, потом обновим его на основе ID
@@ -40,7 +37,6 @@ class UserRepository(BaseRepository[User, UserRegister, UserUpdate]):
             email=email,
             full_name=full_name,
             hashed_password=get_password_hash(password) if password else None,
-            google_id=google_id,
             balance=10,  # Приветственный бонус
             respondent_code=temp_respondent_code,
         )

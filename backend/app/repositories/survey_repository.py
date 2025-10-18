@@ -21,7 +21,7 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
         """Получить список активных опросов для ленты"""
         query = (
             db.query(Survey)
-            .join(User, Survey.author_id == User.id)
+            # .join(User, Survey.author_id == User.id)
             .filter(Survey.status == SurveyStatus.ACTIVE)
             .order_by(desc(Survey.created_at))
         )
@@ -53,7 +53,7 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
         """Получить опрос с информацией об авторе"""
         return (
             db.query(Survey)
-            .join(User, Survey.author_id == User.id)
+            # .join(User, Survey.author_id == User.id)
             .filter(Survey.id == survey_id)
             .first()
         )
@@ -164,7 +164,7 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
         """Поиск опросов по названию или описанию"""
         return (
             db.query(Survey)
-            .join(User, Survey.author_id == User.id)
+            # .join(User, Survey.author_id == User.id)
             .filter(
                 and_(
                     Survey.status == SurveyStatus.ACTIVE,

@@ -29,7 +29,7 @@ class GoogleSettings(BaseSettings):
     GOOGLE_USERINFO_URL: str = "https://www.googleapis.com/oauth2/v2/userinfo"
     GOOGLE_FORMS_API_BASE: str = "https://forms.googleapis.com/v1"
     
-    class Config:
+    class ConfigDict:
         env_file = ".env"
         extra = "ignore"
 

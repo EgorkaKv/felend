@@ -71,16 +71,17 @@ class AuthService:
         return self.create_tokens(user)
 
     def get_current_user(self, token: str) -> User:
+        print('AUTH SERVICE INCOMING')
         payload = verify_token(token, token_type="access")
-
+        print('AUTHSERVICE 11111111')
         if not payload:
             raise AuthenticationException("Invalid access token")
-        
+        print('AUTH SERVICE 222222222')
         user_id = payload.get("sub")
 
         if not user_id:
             raise AuthenticationException("Invalid token payload")
-        
+        print('AUTH SERVICE 3333333')
         user = self.user_repo.get(self.db, int(user_id))
         
         if not user or not user.is_active:

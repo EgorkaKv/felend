@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 from app.models import SurveyStatus, TransactionType
 
@@ -36,7 +36,7 @@ class UserProfile(BaseModel):
     respondent_code: str
     created_at: datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
@@ -53,7 +53,7 @@ class GoogleAccountDetail(BaseModel):
     is_active: bool
     created_at: datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
@@ -78,10 +78,13 @@ class GoogleAccountUpdate(BaseModel):
 
 # Survey schemas
 class SurveyCreate(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    google_account_id: int = Field(..., description="ID Google аккаунта для создания опроса")
+    google_account_id: int = Field(
+        ..., description="ID Google аккаунта для создания опроса"
+    )
     google_form_url: HttpUrl
+
+
+class SurveyProps(BaseModel):
     reward_per_response: int = Field(..., ge=1, le=50)
     responses_needed: Optional[int] = Field(None, ge=1)
     max_responses_per_user: int = Field(1, ge=1, le=10)
@@ -109,7 +112,7 @@ class SurveyListItem(BaseModel):
     can_participate: bool
     my_responses_count: int
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
@@ -129,7 +132,7 @@ class SurveyDetail(BaseModel):
     my_responses_count: int
     created_at: datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
@@ -148,7 +151,7 @@ class MySurveyDetail(BaseModel):
     collects_emails: bool
     created_at: datetime
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
@@ -176,7 +179,7 @@ class SurveyResponseCreate(BaseModel):
 class SurveyResponseUpdate(BaseModel):
     is_verified: Optional[bool] = None
     reward_paid: Optional[bool] = None
-    
+
 
 class SurveyResponseDetail(BaseModel):
     id: int
@@ -186,8 +189,8 @@ class SurveyResponseDetail(BaseModel):
     reward_paid: bool
     started_at: datetime
     completed_at: Optional[datetime]
-    
-    class Config:
+
+    class ConfigDict:
         from_attributes = True
 
 
@@ -201,7 +204,7 @@ class TransactionItem(BaseModel):
     created_at: datetime
     related_survey: Optional[dict] = None
 
-    class Config:
+    class ConfigDict:
         from_attributes = True
 
 
@@ -224,3 +227,68 @@ class ErrorResponse(BaseModel):
     success: bool = False
     error: str
     details: Optional[dict] = None
+
+
+class FormInfo:
+    title: str
+    documentTitle: str
+    description: Optional[str]
+
+
+class QuizSettings:
+    isQuiz: Optional[bool]
+
+
+class FormSettings:
+    quizSettings: Optional[QuizSettings]
+    emailCollectionType: Optional[
+        Literal[
+            "EMAIL_COLLECTION_TYPE_UNSPECIFIED",
+            "DO_NOT_COLLECT",
+            "VERIFIED",
+            "RESPONDER_INPUT",
+        ]
+    ] = "EMAIL_COLLECTION_TYPE_UNSPECIFIED"
+    collect_emails: Optional[bool] = True if emailCollectionType in ["VERIFIED", "RESPONDER_INPUT"] else False
+
+
+class FormItem:
+    itemId: str
+    title: str
+    description: Optional[str] = None
+
+    questionItem: Optional[dict] = None  # Можно расширить для конкретных типов вопросов
+    questionGroupItem: Optional[dict] = None  # Можно расширить для групп вопросов
+    pageBreakItem: Optional[dict] = None  # Можно расширить для разрывов страниц
+    textItem: Optional[dict] = None  # Можно расширить для текстовых элементов
+    imageItem: Optional[dict] = None  # Можно расширить для изображений
+    videoItem: Optional[dict] = None  # Можно расширить для видео
+
+
+class PublishState:
+    isPublished: Optional[bool]
+    isAcceptingResponses: Optional[bool]
+
+
+class PublishSettings:
+    publishState: Optional[PublishState]
+
+
+class GoogleForm(BaseModel):
+    formId: str
+    info: FormInfo
+    settings: FormSettings
+    items: List[FormItem] = []
+    revisionId: Optional[str] = None
+    responderUri: Optional[HttpUrl] = None
+    publishSettings: Optional[PublishSettings] = None
+
+
+class FormValidationResponse(BaseModel):
+    have_access: bool
+    google_form_id: str
+    google_form_url: str
+    title: Optional[str] = None
+    question_count: Optional[int] = 0
+    recommended_reward: Optional[int] = 0
+    collects_emails: Optional[bool] = None

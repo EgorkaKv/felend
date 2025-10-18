@@ -21,8 +21,9 @@ dependencies = [
     "google-auth-httplib2 (>=0.2.0,<1.0.0)",
     "google-auth-oauthlib (>=1.2.1,<2.0.0)",
     "pydantic-settings (>=2.5.0,<3.0.0)",
-    "bcrypt (==4.2.0)",
-    "passlib[bcrypt] (>=1.7.4)"
+    "bcrypt (<4.0.0)",
+    "passlib[bcrypt] (>=1.7.4)",
+    "pytest-html (>=4.1.1,<5.0.0)"
 ]
 
 
@@ -33,3 +34,9 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 package-mode = false
+[tool.poetry.group.dev.dependencies]
+pyright = "^1.1.406"
+pytest = "^8.4.2"
+pytest-asyncio = "^1.2.0"
+httpx = "^0.28.1"
+

@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -16,6 +19,8 @@ from app.api.v1 import (
     google_accounts,
     google_forms,
 )
+
+
 
 # if settings.DEBUG:
 # from app.api.v1 import dev

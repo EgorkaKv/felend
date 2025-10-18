@@ -1,12 +1,10 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
 from app.core.database import Base
 import enum
 from typing import Optional
 from datetime import datetime
-
 
 class TransactionType(enum.Enum):
     EARNED = "earned"  # получил баллы за прохождение опроса
@@ -41,6 +39,18 @@ class User(Base):
     google_accounts = relationship("GoogleAccount", back_populates="user")
     survey_responses = relationship("SurveyResponse", back_populates="respondent")
     transactions = relationship("BalanceTransaction", back_populates="user")
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "email": self.email,
+            "full_name": self.full_name,
+            "balance": self.balance,
+            "respondent_code": self.respondent_code,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
 
 
 class GoogleAccount(Base):
@@ -86,7 +96,7 @@ class Survey(Base):
     
     # Метаданные формы
     questions_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # количество вопросов
-    question_types: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)  # типы вопросов в JSON формате
+    question_types: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # типы вопросов в JSON формате
     # Пример: {"questions": [{"type": "text", "required": true}, {"type": "choice", "options": ["Да", "Нет"]}]}
     
     # Система баллов и статус
@@ -96,6 +106,7 @@ class Survey(Base):
     # Статистика
     total_responses: Mapped[int] = mapped_column(Integer, default=0)  # общее количество ответов
     responses_needed: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # желаемое количество ответов
+    last_reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # когда в последний раз проверяли форму
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

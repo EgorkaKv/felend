@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     MIN_REWARD_PER_RESPONSE: int = 1
     MAX_REWARD_PER_RESPONSE: int = 50
     
-    class Config:
+    class ConfigDict:
         env_file = ".env"
         case_sensitive = True
         extra = "ignore"
