@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
-from typing import Optional, List, Literal
+from typing import Any, Optional, List, Literal
 from datetime import datetime
 from app.models import SurveyStatus, TransactionType
 
@@ -78,17 +78,17 @@ class GoogleAccountUpdate(BaseModel):
 
 # Survey schemas
 class SurveyCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
     google_account_id: int = Field(
         ..., description="ID Google аккаунта для создания опроса"
     )
     google_form_url: HttpUrl
-
-
-class SurveyProps(BaseModel):
     reward_per_response: int = Field(..., ge=1, le=50)
     responses_needed: Optional[int] = Field(None, ge=1)
     max_responses_per_user: int = Field(1, ge=1, le=10)
     collects_emails: bool = True
+    google_account_id: int = Field(..., description="ID Google аккаунта для создания опроса")
 
 
 class SurveyUpdate(BaseModel):
@@ -239,16 +239,18 @@ class QuizSettings:
     isQuiz: Optional[bool]
 
 
-class FormSettings:
-    quizSettings: Optional[QuizSettings]
-    emailCollectionType: Optional[
+type EmailCollectionType = Optional[
         Literal[
             "EMAIL_COLLECTION_TYPE_UNSPECIFIED",
             "DO_NOT_COLLECT",
             "VERIFIED",
             "RESPONDER_INPUT",
         ]
-    ] = "EMAIL_COLLECTION_TYPE_UNSPECIFIED"
+    ]
+
+class FormSettings:
+    quizSettings: Optional[QuizSettings]
+    emailCollectionType: EmailCollectionType = "EMAIL_COLLECTION_TYPE_UNSPECIFIED"
     collect_emails: Optional[bool] = True if emailCollectionType in ["VERIFIED", "RESPONDER_INPUT"] else False
 
 
@@ -257,12 +259,12 @@ class FormItem:
     title: str
     description: Optional[str] = None
 
-    questionItem: Optional[dict] = None  # Можно расширить для конкретных типов вопросов
-    questionGroupItem: Optional[dict] = None  # Можно расширить для групп вопросов
-    pageBreakItem: Optional[dict] = None  # Можно расширить для разрывов страниц
-    textItem: Optional[dict] = None  # Можно расширить для текстовых элементов
-    imageItem: Optional[dict] = None  # Можно расширить для изображений
-    videoItem: Optional[dict] = None  # Можно расширить для видео
+    questionItem: Optional[dict[str, Any]] = None  # Можно расширить для конкретных типов вопросов
+    questionGroupItem: Optional[dict[str, Any]] = None  # Можно расширить для групп вопросов
+    pageBreakItem: Optional[dict[str, Any]] = None  # Можно расширить для разрывов страниц
+    textItem: Optional[dict[str, Any]] = None  # Можно расширить для текстовых элементов
+    imageItem: Optional[dict[str, Any]] = None  # Можно расширить для изображений
+    videoItem: Optional[dict[str, Any]] = None  # Можно расширить для видео
 
 
 class PublishState:

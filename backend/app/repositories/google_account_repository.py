@@ -44,6 +44,25 @@ class GoogleAccountRepository(
             .first()
         )
 
+    def get_by_id(self, db: Session, id: int) -> Optional[GoogleAccount]:
+        """Получить Google аккаунт по ID"""
+        return (
+            db.query(GoogleAccount)
+            .filter(GoogleAccount.id == id, GoogleAccount.is_active == True)
+            .first()
+        )
+    
+    def account_have_tokens(self, db: Session, id: int) -> bool:
+        """Проверить, есть ли у аккаунта токены"""
+        account = (
+            db.query(GoogleAccount)
+            .filter(GoogleAccount.id == id, GoogleAccount.is_active == True)
+            .first()
+        )
+        if account and (account.access_token or account.refresh_token):
+            return True
+        return False
+
     def get_primary_for_user(
         self, db: Session, user_id: int
     ) -> Optional[GoogleAccount]:

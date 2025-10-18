@@ -142,6 +142,19 @@ class GoogleAccountsService:
         """Получить все Google аккаунты пользователя"""
         return self.google_account_repo.get_by_user_id(self.db, user_id)
 
+    def check_user_google_account(
+        self, user_id: int, account_id: int
+    ) -> Optional[GoogleAccount]:
+        """Проверить принадлежность Google аккаунта пользователю"""
+        
+        account: Optional[GoogleAccount] = self.google_account_repo.get_by_id(self.db, account_id)
+        if not account or account.user_id != user_id:
+            raise ValueError("Google account does not belong to user")
+
+        if self.google_account_repo.account_have_tokens(self.db, account_id):
+            return account
+        return None
+
     def get_primary_google_account(self, user_id: int) -> Optional[GoogleAccount]:
         """Получить основной Google аккаунт пользователя"""
         return self.google_account_repo.get_primary_for_user(self.db, user_id)

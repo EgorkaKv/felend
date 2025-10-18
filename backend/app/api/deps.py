@@ -82,7 +82,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
     """Dependency для получения активного пользователя"""
     if current_user.is_active is False:
         raise HTTPException(
-            status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
         )
     return current_user
 
@@ -91,17 +91,30 @@ def get_google_accounts_service(db: Session = Depends(get_db)) -> GoogleAccounts
     return GoogleAccountsService(db)
 
 
-def get_google_forms_service(
-    google_account_id: int,
+def get_google_forms_service_with_account(
+    google_account_id: int,  # Этот параметр будет браться из Body/Query/Path
     current_user: User = Depends(get_current_active_user),
-) -> object:
-    # Возвращает GoogleFormsService или mock, используя access_token текущего пользователя
-    if not current_user.google_access_token:
+    google_accounts_service: GoogleAccountsService = Depends(get_google_accounts_service)
+):
+    """Dependency для получения GoogleFormsService с конкретным google_account_id"""
+    # Получаем Google аккаунт по ID и проверяем принадлежность текущему пользователю
+    google_account = None
+    try: 
+        google_account = google_accounts_service.check_user_google_account(
+            current_user.id,
+            google_account_id
+        )
+    except Exception as e:
+        logger.error(f'Error checking user google account: {str(e)}')
+    
+    if not google_account:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Сначала подключите Google аккаунт",
+            detail="Google аккаунт не найден или токен недоступен",
         )
-    return get_google_forms_service(current_user.google_access_token)
+    
+    from app.services.google_forms_service import get_google_forms_service
+    return get_google_forms_service(google_account.access_token)
 
 
 # Опциональная авторизация (может быть None)
