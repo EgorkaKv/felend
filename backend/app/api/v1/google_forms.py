@@ -2,7 +2,7 @@
 Google Forms endpoints (валидация формы и т.п.)
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.deps import get_google_forms_service_with_account
+#from app.api.deps import get_google_forms_service_with_account
 from app.core.exceptions import GoogleAPIException
 from app.services.google_forms_service import GoogleFormsService
 import logging
@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 async def validate_google_form(
     form_url: str,
     google_account_id: int,
-    forms_service: GoogleFormsService = Depends(get_google_forms_service_with_account)
+    #forms_service: GoogleFormsService = Depends(get_google_forms_service_with_account)
+    forms_service = lambda: None
 ):
     """
     Валидировать Google Form URL и проверить доступ

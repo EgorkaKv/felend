@@ -91,22 +91,8 @@ def get_google_accounts_service(db: Session = Depends(get_db)) -> GoogleAccounts
     return GoogleAccountsService(db)
 
 
-def get_google_forms_service_with_account(
-    google_account_id: int,  # Этот параметр будет браться из Body/Query/Path
-    current_user: User = Depends(get_current_active_user),
-    google_accounts_service: GoogleAccountsService = Depends(get_google_accounts_service)
-):
-    """Dependency для получения GoogleFormsService с конкретным google_account_id"""
-    # Получаем Google аккаунт по ID и проверяем принадлежность текущему пользователю
-    google_account = None
-    try: 
-        google_account = google_accounts_service.check_user_google_account(
-            current_user.id,
-            google_account_id
-        )
-    except Exception as e:
-        logger.error(f'Error checking user google account: {str(e)}')
-    
+def get_google_forms_service_for_account(google_account):
+    """Создать GoogleFormsService для конкретного Google аккаунта"""
     if not google_account:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -114,7 +100,7 @@ def get_google_forms_service_with_account(
         )
     
     from app.services.google_forms_service import get_google_forms_service
-    return get_google_forms_service(google_account.access_token)
+    return get_google_forms_service(google_account)
 
 
 # Опциональная авторизация (может быть None)

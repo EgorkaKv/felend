@@ -88,7 +88,6 @@ class SurveyCreate(BaseModel):
     responses_needed: Optional[int] = Field(None, ge=1)
     max_responses_per_user: int = Field(1, ge=1, le=10)
     collects_emails: bool = True
-    google_account_id: int = Field(..., description="ID Google аккаунта для создания опроса")
 
 
 class SurveyUpdate(BaseModel):

@@ -4,7 +4,10 @@ from googleapiclient.discovery import build, Resource
 from googleapiclient.errors import HttpError
 import logging
 from app.core.exceptions import GoogleAPIException, ValidationException
+from app.models import GoogleAccount
 from app.schemas import EmailCollectionType, FormValidationResponse, GoogleForm
+from app.core.config import settings
+from app.core.google_config import google_settings
 
 
 logger = logging.getLogger(__name__)
@@ -13,9 +16,19 @@ logger = logging.getLogger(__name__)
 class GoogleFormsService:
     """Сервис для работы с Google Forms API"""
 
-    def __init__(self, access_token: str):
+    def __init__(self, access_token: str, refresh_token: Optional[str] = None):
         self.access_token = access_token
-        self.credentials = Credentials(token=access_token)
+
+        # Создаем полные credentials с необходимыми полями для refresh
+        self.credentials = Credentials(
+            token=access_token,
+            refresh_token=refresh_token,
+            token_uri=google_settings.GOOGLE_TOKEN_URL,
+            client_id=google_settings.GOOGLE_CLIENT_ID,
+            client_secret=google_settings.GOOGLE_CLIENT_SECRET,
+            scopes=google_settings.GOOGLE_SCOPES
+        )
+        
         self.service = build("forms", "v1", credentials=self.credentials)
 
     async def get_form_info(self, form_id: str) -> GoogleForm:
@@ -178,13 +191,12 @@ class GoogleFormsService:
             raise GoogleAPIException("Не удалось изменить настройки формы")
 
 
-def get_google_forms_service(access_token: str):
+def get_google_forms_service(google_account: GoogleAccount):
     """Фабрика для создания сервиса Google Forms"""
-    from app.core.config import settings
-
+    return GoogleFormsService(google_account.access_token, google_account.refresh_token)
+    
     if settings.USE_MOCK_GOOGLE_API:
         from app.services.mock_google_service import get_mock_google_forms_service
-
-        return get_mock_google_forms_service(access_token)
+        return get_mock_google_forms_service(google_account.access_token)
     else:
-        return GoogleFormsService(access_token)
+        return GoogleFormsService(google_account.access_token, google_account.refresh_token)

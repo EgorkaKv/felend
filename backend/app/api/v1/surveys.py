@@ -5,7 +5,7 @@ from app.api.deps import (
     get_db,
     get_current_active_user,
     get_current_user_optional,
-    get_google_forms_service_with_account,
+    get_google_accounts_service,
 )
 from app.api.deps import get_survey_service
 from app.schemas import (
@@ -19,6 +19,7 @@ from app.schemas import (
 from app.models import User
 from app.services.google_forms_service import GoogleFormsService
 from app.services.survey_service import SurveyService
+from app.services.google_accounts_service import GoogleAccountsService
 from app.core.exceptions import (
     SurveyNotFoundException,
     AuthorizationException,
@@ -112,11 +113,27 @@ async def create_survey(
     survey_data: SurveyCreate,
     current_user: User = Depends(get_current_active_user),
     survey_service: SurveyService = Depends(get_survey_service),
-    forms_service: GoogleFormsService = Depends(get_google_forms_service_with_account),
+    google_accounts_service: GoogleAccountsService = Depends(get_google_accounts_service),
 ):
     """Создать новый опрос"""
     try:
-        survey = survey_service.create_survey(
+        # Получаем Google аккаунт из тела запроса и проверяем принадлежность пользователю
+        google_account = google_accounts_service.check_user_google_account(
+            current_user.id, 
+            survey_data.google_account_id
+        )
+        
+        if not google_account:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google аккаунт не найден или токен недоступен",
+            )
+        
+        # Создаем GoogleFormsService для этого аккаунта
+        from app.api.deps import get_google_forms_service_for_account
+        forms_service = get_google_forms_service_for_account(google_account)
+
+        survey = await survey_service.create_survey(
             survey_data, current_user.id, forms_service
         )
 

@@ -180,6 +180,26 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
             .all()
         )
 
+    def create_survey(
+        self, 
+        db: Session, 
+        survey_in: SurveyCreate, 
+        author_id: int,
+        google_account_id: int
+    ) -> Survey:
+        """Создать новый опрос"""
+        survey_data = survey_in.model_dump() if hasattr(survey_in, 'model_dump') else survey_in.dict()
+        survey_obj = Survey(
+            **survey_data,
+            author_id=author_id,
+            google_account_id=google_account_id,
+            status=SurveyStatus.ACTIVE,
+            total_responses=0
+        )
+        db.add(survey_obj)
+        db.commit()
+        db.refresh(survey_obj)
+        return survey_obj
 
 # Создаем экземпляр репозитория
 survey_repository = SurveyRepository()

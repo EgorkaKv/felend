@@ -2,6 +2,7 @@
 Google OAuth endpoints (login, callback)
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.deps import get_google_accounts_service, get_google_auth_service, get_current_active_user
 from app.models import User
@@ -48,7 +49,7 @@ async def google_login(
 async def google_callback(
     code: str = Query(..., description="Authorization code from Google"),
     state: str = Query(..., description="JWT state with user_id"),
-    scope: str = Query(..., description="Scopes requested during authorization"),
+    scope: Optional[str] = Query(None, description="Scopes requested during authorization"),
     google_auth_service=Depends(get_google_auth_service),
     google_accounts_service=Depends(get_google_accounts_service)
 ):
