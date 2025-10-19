@@ -5,6 +5,7 @@ from app.models import User, BalanceTransaction, TransactionType
 from app.repositories.user_repository import user_repository
 from app.core.security import verify_password, create_access_token, create_refresh_token, verify_token
 from app.core.exceptions import (
+    InvalidTokenException,
     UserAlreadyExistsException, 
     InvalidCredentialsException, 
     UserNotFoundException,
@@ -74,12 +75,12 @@ class AuthService:
         payload = verify_token(token, token_type="access")
 
         if not payload:
-            raise AuthenticationException("Invalid access token")
+            raise InvalidTokenException()
         
         user_id = payload.get("sub")
 
         if not user_id:
-            raise AuthenticationException("Invalid token payload")
+            raise InvalidTokenException()
         
         user = self.user_repo.get(self.db, int(user_id))
         

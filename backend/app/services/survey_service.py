@@ -16,6 +16,8 @@ from app.schemas import (
 from app.core.exceptions import (
     SurveyNotFoundException,
     AuthorizationException,
+    SurveyValidationException,
+    UserNotFoundException,
     ValidationException,
     InsufficientBalanceException,
 )
@@ -38,28 +40,37 @@ class SurveyService:
         """Создать новый опрос"""
 
         form: GoogleForm = await forms_service.validate_form_access(
-            str(survey_data.google_form_url))
+            str(survey_data.google_form_url)
+        )
+
+        if not form.settings.collect_emails:
+            raise SurveyValidationException(
+                "The Google Form must be set to collect email addresses. Current collect email settings: "
+                + str(form.settings.emailCollectionType),
+                form.formId,
+            )
 
         author = self.user_repo.get(self.db, author_id)
         if not author:
-            raise AuthorizationException("User not found")
+            raise UserNotFoundException(user_id=author_id)
 
         if author.balance < survey_data.reward_per_response:
-            raise InsufficientBalanceException(survey_data.reward_per_response, author.balance, author_id)
+            raise InsufficientBalanceException(
+                survey_data.reward_per_response, author.balance, author_id
+            )
 
         survey = Survey(
-            title=survey_data.title,
-            description=survey_data.description,
-            author_id=author_id,
+            title=form.info.title,
+            description=form.info.description,
+            google_account_id=survey_data.google_account_id,
             google_form_id=form.formId,
             google_form_url=str(survey_data.google_form_url),
+            questions_count=len(form.items),
+            question_types={},
             reward_per_response=survey_data.reward_per_response,
+            status=SurveyStatus.ACTIVE,
             responses_needed=survey_data.responses_needed,
             max_responses_per_user=survey_data.max_responses_per_user,
-            collects_emails=survey_data.collects_emails,
-            status=SurveyStatus.ACTIVE,
-            questions_count=0,
-            question_types={},
         )
 
         # FIXME: вызов репозитория, а не базы напрямую
@@ -105,23 +116,29 @@ class SurveyService:
             result.append(survey_item)
         return result
 
-    def _get_google_account_for_user(self, user_id: int, google_account_id: Optional[int] = None) -> GoogleAccount:
+    def _get_google_account_for_user(
+        self, user_id: int, google_account_id: Optional[int] = None
+    ) -> GoogleAccount:
         """Получить Google аккаунт пользователя по логике:
         - Если google_account_id указан, проверить что он принадлежит пользователю
         - Если не указан, взять primary_google_account пользователя
         """
-        
+
         if google_account_id:
             # Проверяем что аккаунт принадлежит пользователю
             google_account = self.google_accounts_service.check_user_google_account(
                 user_id, google_account_id
             )
             if not google_account:
-                raise AuthorizationException("Google account does not belong to user or is not active")
+                raise AuthorizationException(
+                    "Google account does not belong to user or is not active"
+                )
             return google_account
         else:
             # Используем primary аккаунт
-            google_account = self.google_accounts_service.get_primary_google_account(user_id)
+            google_account = self.google_accounts_service.get_primary_google_account(
+                user_id
+            )
             if not google_account:
                 raise ValidationException("User has no primary Google account")
             return google_account
@@ -161,13 +178,19 @@ class SurveyService:
         )
 
     def get_my_surveys(
-        self, user_id: int, google_account_id: Optional[int] = None, skip: int = 0, limit: int = 50
+        self,
+        user_id: int,
+        google_account_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 50,
     ) -> List[MySurveyDetail]:
         """Получить мои опросы"""
 
         google_account = self._get_google_account_for_user(user_id, google_account_id)
 
-        surveys = self.survey_repo.get_user_surveys(self.db, google_account.id, skip, limit)
+        surveys = self.survey_repo.get_user_surveys(
+            self.db, google_account.id, skip, limit
+        )
 
         result = []
         for survey in surveys:

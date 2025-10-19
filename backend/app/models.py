@@ -98,6 +98,7 @@ class Survey(Base):
     questions_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # количество вопросов
     question_types: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # типы вопросов в JSON формате
     # Пример: {"questions": [{"type": "text", "required": true}, {"type": "choice", "options": ["Да", "Нет"]}]}
+    max_responses_per_user: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     
     # Система баллов и статус
     reward_per_response: Mapped[int] = mapped_column(Integer, nullable=False)  # баллы за прохождение

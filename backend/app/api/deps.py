@@ -64,18 +64,10 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    try:
-        token = credentials.credentials
-        user = auth_service.get_current_user(token)
-        logger.info(f"User authorized: {user.id}")
-        return user
-    except AuthenticationException as e:
-        logger.warning(f"User not authorized: {e.detail}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e.detail),
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    token = credentials.credentials
+    user = auth_service.get_current_user(token)
+    logger.info(f"User authorized: {user.id}")
+    return user
 
 
 def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:

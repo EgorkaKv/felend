@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, HttpUrl, Field
+from pydantic import BaseModel, EmailStr, HttpUrl, Field, model_validator
 from typing import Optional, List, Literal, Any, Dict
 from datetime import datetime
 from app.models import SurveyStatus, TransactionType
@@ -78,8 +78,8 @@ class GoogleAccountUpdate(BaseModel):
 
 # Survey schemas
 class SurveyCreate(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
+    # title: str = Field(..., min_length=1, max_length=255)
+    # description: Optional[str] = None
     google_account_id: int = Field(
         ..., description="ID Google аккаунта для создания опроса"
     )
@@ -87,7 +87,7 @@ class SurveyCreate(BaseModel):
     reward_per_response: int = Field(..., ge=1, le=50)
     responses_needed: Optional[int] = Field(None, ge=1)
     max_responses_per_user: int = Field(1, ge=1, le=10)
-    collects_emails: bool = True
+    # collects_emails: bool = True
 
 
 class SurveyUpdate(BaseModel):
@@ -297,19 +297,26 @@ class QuizSettings(BaseModel):
     isQuiz: Optional[bool] = None
 
 
-type EmailCollectionType = Optional[
-        Literal[
-            "EMAIL_COLLECTION_TYPE_UNSPECIFIED",
-            "DO_NOT_COLLECT",
-            "VERIFIED",
-            "RESPONDER_INPUT",
-        ]
+EmailCollectionType = Optional[
+    Literal[
+        "EMAIL_COLLECTION_TYPE_UNSPECIFIED",
+        "DO_NOT_COLLECT",
+        "VERIFIED",
+        "RESPONDER_INPUT",
     ]
+]
 
 class FormSettings(BaseModel):
     quizSettings: Optional[QuizSettings] = None
     emailCollectionType: EmailCollectionType = "EMAIL_COLLECTION_TYPE_UNSPECIFIED"
     collect_emails: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def set_collect_emails(self):
+        # Если collect_emails не передан явно, вычисляем его по emailCollectionType
+        if self.collect_emails is None:
+            self.collect_emails = True if self.emailCollectionType in ["VERIFIED", "RESPONDER_INPUT"] else False
+        return self
 
 
 class FormItem(BaseModel):

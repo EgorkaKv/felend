@@ -25,12 +25,6 @@ from app.api.v1 import (
     google_forms,
 )
 
-
-
-# if settings.DEBUG:
-# from app.api.v1 import dev
-
-
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

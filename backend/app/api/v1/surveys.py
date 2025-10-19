@@ -118,6 +118,13 @@ async def create_survey(
         current_user.id, 
         survey_data.google_account_id
     )
+
+    if not google_account:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google not found or inaccessible",
+        )
     
     # Создаем GoogleFormsService для этого аккаунта
     from app.api.deps import get_google_forms_service_for_account

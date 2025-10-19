@@ -139,7 +139,6 @@ class InvalidTokenException(AuthenticationException):
     def __init__(self, context: Optional[Dict[str, Any]] = None):
         super().__init__("Invalid or malformed token", ErrorCodes.TOKEN_INVALID, context)
 
-
 class UserInactiveException(AuthorizationException):
     def __init__(self, user_id: int):
         super().__init__(
@@ -147,7 +146,6 @@ class UserInactiveException(AuthorizationException):
             ErrorCodes.USER_INACTIVE, 
             {"user_id": user_id}
         )
-
 
 # User специфичные
 class UserNotFoundException(NotFoundException):
@@ -168,7 +166,6 @@ class UserAlreadyExistsException(ConflictException):
             {"email": email}
         )
 
-
 # Survey специфичные
 class SurveyNotFoundException(NotFoundException):
     def __init__(self, survey_id: int):
@@ -178,7 +175,6 @@ class SurveyNotFoundException(NotFoundException):
             {"survey_id": survey_id}
         )
 
-
 class InsufficientBalanceException(ValidationException):
     def __init__(self, required: int, current: int, user_id: int):
         super().__init__(
@@ -186,7 +182,6 @@ class InsufficientBalanceException(ValidationException):
             ErrorCodes.INSUFFICIENT_BALANCE,
             {"required": required, "current": current, "user_id": user_id}
         )
-
 
 class AlreadyParticipatedException(ConflictException):
     def __init__(self, survey_id: int, user_id: int):
@@ -198,7 +193,7 @@ class AlreadyParticipatedException(ConflictException):
 
 
 class SurveyValidationException(ValidationException):
-    def __init__(self, detail: str, survey_id: Optional[int] = None):
+    def __init__(self, detail: str, survey_id: Optional[str] = None):
         context = {"validation_detail": detail}
         if survey_id:
             context["survey_id"] = str(survey_id)
