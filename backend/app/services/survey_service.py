@@ -73,7 +73,6 @@ class SurveyService:
             max_responses_per_user=survey_data.max_responses_per_user,
         )
 
-        # FIXME: вызов репозитория, а не базы напрямую
         self.db.add(survey)
         self.db.commit()
         self.db.refresh(survey)

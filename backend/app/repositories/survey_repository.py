@@ -5,6 +5,7 @@ from app.models import Survey, User, SurveyResponse, SurveyStatus
 from app.repositories.base_repository import BaseRepository
 from app.schemas import SurveyCreate, SurveyUpdate
 from app.core.exceptions import SurveyNotFoundException
+from app.models import GoogleAccount
 
 
 class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
@@ -62,7 +63,7 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
         """Получить статистику по опросу"""
         survey = db.query(Survey).filter(Survey.id == survey_id).first()
         if not survey:
-            raise SurveyNotFoundException()
+            raise SurveyNotFoundException(survey_id=survey_id)
 
         # Подсчет ответов
         total_responses = (
@@ -122,8 +123,19 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
         if not survey or survey.status != SurveyStatus.ACTIVE:
             return False
 
-        # Проверяем что пользователь не автор опроса
-        if survey.author_id == user_id:
+        # Проверяем что пользователь не автор опроса через связку google_accounts -> user
+        # делаем локальный импорт GoogleAccount чтобы не менять верхние импорты файла
+
+        author_link = (
+            db.query(User)
+            .join(GoogleAccount, GoogleAccount.user_id == User.id)
+            .filter(
+            GoogleAccount.id == survey.google_account_id,
+            User.id == user_id
+            )
+            .first()
+        )
+        if author_link:
             return False
 
         # Проверяем лимит участий
@@ -134,7 +146,7 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
         """Обновить счетчик ответов в опросе"""
         survey = self.get(db, survey_id)
         if not survey:
-            raise SurveyNotFoundException()
+            raise SurveyNotFoundException(survey_id=survey_id)
 
         # Пересчитываем количество ответов
         total_responses = (

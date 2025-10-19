@@ -11,7 +11,7 @@ from app.models import SurveyResponse, BalanceTransaction, TransactionType, Surv
 from app.repositories.survey_repository import survey_repository
 from app.repositories.survey_response_repository import survey_response_repository
 from app.repositories.user_repository import user_repository
-from app.core.exceptions import ValidationException, AuthorizationException, FelendException
+from app.core.exceptions import ConflictException, SurveyNotFoundException, SurveyValidationException, ValidationException, AuthorizationException, FelendException
 from app.schemas import SurveyStartResponse, SurveyVerifyResponse
 
 
@@ -29,37 +29,69 @@ class ParticipationService:
 
     def start_participation(self, survey_id: int, user_id: int) -> SurveyStartResponse:
         survey = self.survey_repo.get(self.db, survey_id)
+        
         if not survey:
-            raise ValidationException("Survey not found")
+            raise SurveyNotFoundException(survey_id=survey_id)
+        
         if survey.status != SurveyStatus.ACTIVE:
-            raise ValidationException("Survey is not active")
+            raise SurveyValidationException("Survey is not active", 
+                                            survey_id=str(survey_id))
+        
         if (
             survey.responses_needed
             and survey.total_responses >= survey.responses_needed
         ):
-            raise ValidationException(
-                "Survey has reached the maximum number of responses"
+            raise SurveyValidationException(
+                "Survey has reached the maximum number of responses", 
+                survey_id=str(survey_id)
             )
+        
         user = self.user_repo.get(self.db, user_id)
         if not user:
             raise AuthorizationException("User not found")
+        
         can_participate = self.survey_repo.can_user_participate(
             self.db, survey_id, user_id
         )
+        
         if not can_participate:
-            raise ValidationException("You cannot participate in this survey")
-        existing_response = self.response_repo.get_by_survey_and_respondent(
-            self.db, survey_id, user_id
+            raise ConflictException("You cannot participate in this survey")
+        
+        # Check how many attempts this user has made for this survey
+        attempts_limit = getattr(survey, "max_attempts_per_user", None) or getattr(
+            survey, "attempts_per_user", None
         )
-        if existing_response:
-            if existing_response.is_verified:
-                raise ValidationException("You have already completed this survey")
-            else:
-                return SurveyStartResponse(
-                    google_form_url=survey.google_form_url,
-                    respondent_code=user.respondent_code,
-                    instructions=f"Continue filling out the form. Use your respondent code: {user.respondent_code}",
-                )
+        attempts_count = (
+            self.db.query(SurveyResponse)
+            .filter(
+            SurveyResponse.survey_id == survey_id,
+            SurveyResponse.respondent_id == user_id,
+            )
+            .count()
+        )
+
+        # If there's an existing response allow the user to continue (unless it's already verified)
+        if attempts_count > 0:
+            existing_response = self.response_repo.get_by_survey_and_respondent(
+                self.db, survey_id, user_id
+            )
+            if existing_response:
+                if existing_response.is_verified:
+                    raise ValidationException("You have already completed this survey")
+                else:
+                    pass
+                
+        return SurveyStartResponse(
+            google_form_url=survey.google_form_url,
+            respondent_code=user.respondent_code,
+            instructions=f"Continue filling out the form. Use your respondent code: {user.respondent_code}",
+        )
+
+        # If a per-user attempts limit is set, ensure it is not exceeded
+        if attempts_limit is not None and attempts_count >= attempts_limit:
+            raise ValidationException(
+            "You have exceeded the maximum number of attempts for this survey"
+            )
         response = SurveyResponse(
             survey_id=survey_id,
             respondent_id=user_id,
