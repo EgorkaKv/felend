@@ -45,7 +45,7 @@ class SurveyService:
             raise AuthorizationException("User not found")
 
         if author.balance < survey_data.reward_per_response:
-            raise InsufficientBalanceException(survey_data.reward_per_response, author.balance)
+            raise InsufficientBalanceException(survey_data.reward_per_response, author.balance, author_id)
 
         survey = Survey(
             title=survey_data.title,
@@ -132,7 +132,7 @@ class SurveyService:
         """Получить детали опроса"""
         survey = self.survey_repo.get_with_author(self.db, survey_id)
         if not survey:
-            raise SurveyNotFoundException()
+            raise SurveyNotFoundException(survey_id)
         author = self.user_repo.get(self.db, survey.author_id)
         can_participate = False
         my_responses_count = 0
@@ -194,7 +194,7 @@ class SurveyService:
         """Получить детали моего опроса"""
         survey = self.survey_repo.get(self.db, survey_id)
         if not survey:
-            raise SurveyNotFoundException()
+            raise SurveyNotFoundException(survey_id)
         if survey.author_id != user_id:
             raise AuthorizationException("You are not the author of this survey")
         stats = self.survey_repo.get_survey_stats(self.db, survey.id)
@@ -220,7 +220,7 @@ class SurveyService:
         """Обновить опрос"""
         survey = self.survey_repo.get(self.db, survey_id)
         if not survey:
-            raise SurveyNotFoundException()
+            raise SurveyNotFoundException(survey_id)
         if survey.author_id != user_id:
             raise AuthorizationException("You are not the author of this survey")
         if survey.status == SurveyStatus.ACTIVE and survey.total_responses > 0:
@@ -235,7 +235,7 @@ class SurveyService:
         """Удалить опрос"""
         survey = self.survey_repo.get(self.db, survey_id)
         if not survey:
-            raise SurveyNotFoundException()
+            raise SurveyNotFoundException(survey_id)
         if survey.author_id != user_id:
             raise AuthorizationException("You are not the author of this survey")
         if survey.total_responses > 0:

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, HttpUrl, Field
-from typing import Optional, List, Literal, Any
+from typing import Optional, List, Literal, Any, Dict
 from datetime import datetime
 from app.models import SurveyStatus, TransactionType
 
@@ -221,11 +221,70 @@ class ListResponse(BaseModel):
     per_page: int = 50
 
 
-# Error schemas
+# Error schemas для единого формата ошибок API
+class ErrorDetail(BaseModel):
+    """Детали ошибки с контекстной информацией"""
+    message: str = Field(..., description="Человекочитаемое сообщение об ошибке")
+    code: str = Field(..., description="Уникальный код ошибки (например, AUTH001)")
+    type: str = Field(..., description="Тип исключения (например, AuthenticationException)")
+    details: Optional[Dict[str, Any]] = Field(None, description="Дополнительная контекстная информация")
+    timestamp: str = Field(..., description="Время возникновения ошибки в ISO формате")
+    path: Optional[str] = Field(None, description="API endpoint где произошла ошибка")
+
+
 class ErrorResponse(BaseModel):
-    success: bool = False
-    error: str
-    details: Optional[dict] = None
+    """Стандартный формат ответа с ошибкой"""
+    error: ErrorDetail = Field(..., description="Информация об ошибке")
+    
+    class ConfigDict:
+        json_schema_extra = {
+            "example": {
+                "error": {
+                    "message": "Survey not found",
+                    "code": "SURVEY001",
+                    "type": "SurveyNotFoundException",
+                    "details": {"survey_id": 123},
+                    "timestamp": "2025-10-19T12:00:00Z",
+                    "path": "/api/v1/surveys/123"
+                }
+            }
+        }
+
+
+class ValidationErrorDetail(BaseModel):
+    """Детали ошибок валидации (422)"""
+    message: str = "Validation error"
+    code: str = "VALIDATION001"
+    type: str = "ValidationError"
+    details: List[Dict[str, Any]] = Field(..., description="Список ошибок валидации от Pydantic")
+    timestamp: str
+    path: Optional[str] = None
+
+
+class ValidationErrorResponse(BaseModel):
+    """Ответ с ошибками валидации"""
+    error: ValidationErrorDetail
+    
+    class ConfigDict:
+        json_schema_extra = {
+            "example": {
+                "error": {
+                    "message": "Validation error",
+                    "code": "VALIDATION001", 
+                    "type": "ValidationError",
+                    "details": [
+                        {
+                            "type": "string_too_short",
+                            "loc": ["body", "title"],
+                            "msg": "String should have at least 1 character",
+                            "input": ""
+                        }
+                    ],
+                    "timestamp": "2025-10-19T12:00:00Z",
+                    "path": "/api/v1/surveys/"
+                }
+            }
+        }
 
 
 class FormInfo(BaseModel):

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models import User, BalanceTransaction, TransactionType
 from app.repositories.user_repository import user_repository
+from app.core.exceptions import UserNotFoundException
 
 
 class BalanceService:
@@ -18,7 +19,7 @@ class BalanceService:
     def add_bonus_points(self, user_id: int, amount: int, description: str = "Welcome bonus") -> BalanceTransaction:
         user = self.user_repo.get(self.db, user_id)
         if not user:
-            raise ValueError("User not found")
+            raise UserNotFoundException()
         
         # Обновить баланс
         user.balance += amount
@@ -45,7 +46,7 @@ class BalanceService:
     def get_balance_summary(self, user_id: int) -> dict:
         user = self.user_repo.get(self.db, user_id)
         if not user:
-            raise ValueError("User not found")
+            raise UserNotFoundException()
         earned = self.db.query(BalanceTransaction).filter(
             BalanceTransaction.user_id == user_id,
             BalanceTransaction.transaction_type == TransactionType.EARNED

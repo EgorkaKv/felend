@@ -10,12 +10,11 @@ from google_auth_oauthlib.flow import Flow
 from google.auth.exceptions import GoogleAuthError, RefreshError
 from app.core.security import create_oauth_state, verify_oauth_state
 from app.repositories.user_repository import user_repository
-from app.core.exceptions import GoogleAPIException
+from app.core.exceptions import GoogleAPIException, FelendException
 from datetime import datetime, timezone
 import logging
 from sqlalchemy.orm import Session
 from app.core.google_config import google_settings
-from app.core.exceptions import GoogleAPIException
 from app.services.google_accounts_service import GoogleAccountsService
 
 
@@ -36,30 +35,27 @@ class GoogleAuthService:
                 "redirect_uris": [google_settings.GOOGLE_REDIRECT_URI],
             }
         }
-
+        
     def get_authorization_url(self, user_id: int) -> str:
         """
         Получить URL для авторизации пользователя в Google.
 
         Возвращаемый URL уже содержит параметр state для защиты от CSRF.
         """
-        try:
-            state = create_oauth_state(user_id)
 
-            flow = Flow.from_client_config(
-                self.client_config, scopes=google_settings.GOOGLE_SCOPES
-            )
-            flow.redirect_uri = google_settings.GOOGLE_REDIRECT_URI
+        state = create_oauth_state(user_id)
 
-            authorization_url, _ = flow.authorization_url(
-                access_type="offline", include_granted_scopes="true", state=state, prompt="consent"
-            )
+        flow = Flow.from_client_config(
+            self.client_config, scopes=google_settings.GOOGLE_SCOPES
+        )
+        flow.redirect_uri = google_settings.GOOGLE_REDIRECT_URI
 
-            return authorization_url
+        authorization_url, _ = flow.authorization_url(
+            access_type="offline", include_granted_scopes="true", state=state, prompt="consent"
+        )
 
-        except Exception as e:
-            logger.error(f"Ошибка создания URL авторизации: {e}")
-            raise GoogleAPIException("Не удалось создать URL авторизации")
+        return authorization_url
+
 
     async def exchange_code_for_tokens(self, code: str) -> Dict[str, Any]:
         """Обменять authorization code на токены"""
@@ -102,6 +98,8 @@ class GoogleAuthService:
         except GoogleAuthError as e:
             logger.error(f"Ошибка обмена кода на токены (Google Auth): {e}")
             raise GoogleAPIException("Ошибка авторизации через Google")
+        except FelendException as e:
+            raise  # Re-raise FelendException as is
         except Exception as e:
             logger.error(f"Неизвестная ошибка обмена кода на токены: {e}")
             raise GoogleAPIException("Не удалось обменять код на токены")
@@ -128,6 +126,8 @@ class GoogleAuthService:
             raise GoogleAPIException(
                 "Ошибка HTTP при получении информации о пользователе"
             )
+        except FelendException as e:
+            raise  # Re-raise FelendException as is
         except Exception as e:
             logger.error(f"Ошибка получения информации о пользователе: {e}")
             raise GoogleAPIException("Не удалось получить информацию о пользователе")

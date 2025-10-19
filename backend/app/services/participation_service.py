@@ -11,7 +11,7 @@ from app.models import SurveyResponse, BalanceTransaction, TransactionType, Surv
 from app.repositories.survey_repository import survey_repository
 from app.repositories.survey_response_repository import survey_response_repository
 from app.repositories.user_repository import user_repository
-from app.core.exceptions import ValidationException, AuthorizationException
+from app.core.exceptions import ValidationException, AuthorizationException, FelendException
 from app.schemas import SurveyStartResponse, SurveyVerifyResponse
 
 
@@ -151,7 +151,7 @@ class ParticipationService:
                 new_balance=user.balance,
                 message=f"Congratulations! You earned {survey.reward_per_response} points. Your new balance is {user.balance} points.",
             )
-        except Exception as e:
+        except FelendException as e:
             self.db.rollback()
             logger.error(
                 f"Error processing reward for user {user_id} in survey {survey_id}: {e}"

@@ -10,7 +10,7 @@ from app.core.security import (
     create_refresh_token,
     verify_token,
 )
-from app.core.exceptions import UserAlreadyExistsException
+from app.core.exceptions import UserAlreadyExistsException, AuthorizationException
 from app.core.config import settings
 
 
@@ -34,26 +34,23 @@ class GoogleAccountsService:
         existing_google_account = self.google_account_repo.get_by_google_id(
             self.db, google_id
         )
-        print(11)
+
         if existing_google_account:
-            print(12)
+
             if existing_google_account.user_id != user_id:
-                print(13)
                 raise UserAlreadyExistsException(
                     "This Google account is already connected to another user"
                 )
-            print(14) 
-            temp = self.google_account_repo.update_tokens(
+
+            return self.google_account_repo.update_tokens(
                 db=self.db,
                 account_id=existing_google_account.id,
                 access_token=access_token,
                 refresh_token=refresh_token,
                 token_expires_at=token_expires_at,
             )
-            print(15)
-            return temp
-        print(16)
-        temp = self.google_account_repo.create_google_account(
+
+        return self.google_account_repo.create_google_account(
             db=self.db,
             user_id=user_id,
             google_id=google_id,
@@ -63,8 +60,6 @@ class GoogleAccountsService:
             refresh_token=refresh_token,
             token_expires_at=token_expires_at,
         )
-        print(17)
-        return temp
 
     def register_or_login_google_user(
         self,
@@ -149,7 +144,7 @@ class GoogleAccountsService:
         
         account: Optional[GoogleAccount] = self.google_account_repo.get_by_id(self.db, account_id)
         if not account or account.user_id != user_id:
-            raise ValueError("Google account does not belong to user")
+            raise AuthorizationException("Google account does not belong to user")
 
         if self.google_account_repo.account_have_tokens(self.db, account_id):
             return account
