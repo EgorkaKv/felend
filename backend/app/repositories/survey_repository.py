@@ -30,15 +30,15 @@ class SurveyRepository(BaseRepository[Survey, SurveyCreate, SurveyUpdate]):
 
     def get_user_surveys(
         self, 
-        db: Session, 
-        user_id: int, 
+        db: Session,
+        google_account_id: int, 
         skip: int = 0, 
         limit: int = 50
     ) -> List[Survey]:
         """Получить опросы конкретного пользователя"""
         return (
             db.query(Survey)
-            .filter(Survey.author_id == user_id)
+            .filter(Survey.google_account_id == google_account_id)
             .order_by(desc(Survey.created_at))
             .offset(skip)
             .limit(limit)

@@ -82,14 +82,22 @@ async def get_survey_detail(
 async def get_my_surveys(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
+    google_account_id: Optional[int] = Query(None, description="ID Google аккаунта (если не указан, используется primary)"),
     current_user: User = Depends(get_current_active_user),
     survey_service: SurveyService = Depends(get_survey_service),
 ):
     """Получить список моих опросов"""
     try:
-        surveys = survey_service.get_my_surveys(current_user.id, skip, limit)
+        surveys = survey_service.get_my_surveys(
+            user_id=current_user.id, 
+            google_account_id=google_account_id,
+            skip=skip, 
+            limit=limit
+        )
         return surveys
 
+    except AuthorizationException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -136,7 +144,10 @@ async def get_my_survey_detail(
 ):
     """Получить детали моего опроса"""
     try:
-        survey = survey_service.get_my_survey_detail(survey_id, current_user.id)
+        survey = survey_service.get_my_survey_detail(
+            survey_id=survey_id, 
+            user_id=current_user.id,
+        )
         return survey
 
     except SurveyNotFoundException as e:
@@ -159,10 +170,17 @@ async def update_survey(
 ):
     """Обновить мой опрос"""
     try:
-        survey = survey_service.update_survey(survey_id, survey_update, current_user.id)
+        survey = survey_service.update_survey(
+            survey_id=survey_id, 
+            survey_update=survey_update, 
+            user_id=current_user.id,
+        )
 
         # Возвращаем обновленную информацию
-        return survey_service.get_my_survey_detail(survey.id, current_user.id)
+        return survey_service.get_my_survey_detail(
+            survey_id=survey.id, 
+            user_id=current_user.id,
+        )
 
     except SurveyNotFoundException as e:
         raise HTTPException(status_code=e.status_code, detail=e.detail)
@@ -185,7 +203,10 @@ async def delete_survey(
 ):
     """Удалить мой опрос"""
     try:
-        success = survey_service.delete_survey(survey_id, current_user.id)
+        success = survey_service.delete_survey(
+            survey_id=survey_id, 
+            user_id=current_user.id,
+        )
 
         return ApiResponse(success=success, message="Survey deleted successfully")
 

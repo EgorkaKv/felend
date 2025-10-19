@@ -152,6 +152,18 @@ def test_google_account(db_session, test_user, test_google_account_data):
 
 
 @pytest.fixture
+def test_primary_google_account(db_session, test_google_account):
+    """Установка тестового Google аккаунта как primary"""
+    google_account_repository.set_primary(
+        db=db_session,
+        account_id=test_google_account.id,
+        user_id=test_google_account.user_id
+    )
+    db_session.refresh(test_google_account)
+    return test_google_account
+
+
+@pytest.fixture
 def test_survey_data():
     """Данные для создания тестового опроса"""
     return {

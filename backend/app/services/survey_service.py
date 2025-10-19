@@ -1,9 +1,10 @@
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 import re
-from app.models import Survey, SurveyStatus
-from app.repositories.survey_repository import survey_repository
-from app.repositories.user_repository import user_repository
+from app.models import GoogleAccount, Survey, SurveyStatus
+from app.repositories.survey_repository import SurveyRepository, survey_repository
+from app.repositories.user_repository import UserRepository, user_repository
+from app.services.google_accounts_service import GoogleAccountsService
 from app.schemas import (
     GoogleForm,
     SurveyCreate,
@@ -23,8 +24,9 @@ from app.services.google_forms_service import GoogleFormsService
 
 class SurveyService:
     def __init__(self, db: Session):
-        self.survey_repo = survey_repository
-        self.user_repo = user_repository
+        self.survey_repo: SurveyRepository = survey_repository
+        self.user_repo: UserRepository = user_repository
+        self.google_accounts_service = GoogleAccountsService(db)
         self.db = db
 
     async def create_survey(
@@ -103,6 +105,27 @@ class SurveyService:
             result.append(survey_item)
         return result
 
+    def _get_google_account_for_user(self, user_id: int, google_account_id: Optional[int] = None) -> GoogleAccount:
+        """Получить Google аккаунт пользователя по логике:
+        - Если google_account_id указан, проверить что он принадлежит пользователю
+        - Если не указан, взять primary_google_account пользователя
+        """
+        
+        if google_account_id:
+            # Проверяем что аккаунт принадлежит пользователю
+            google_account = self.google_accounts_service.check_user_google_account(
+                user_id, google_account_id
+            )
+            if not google_account:
+                raise AuthorizationException("Google account does not belong to user or is not active")
+            return google_account
+        else:
+            # Используем primary аккаунт
+            google_account = self.google_accounts_service.get_primary_google_account(user_id)
+            if not google_account:
+                raise ValidationException("User has no primary Google account")
+            return google_account
+
     def get_survey_detail(
         self, survey_id: int, current_user_id: Optional[int] = None
     ) -> SurveyDetail:
@@ -138,10 +161,14 @@ class SurveyService:
         )
 
     def get_my_surveys(
-        self, user_id: int, skip: int = 0, limit: int = 50
+        self, user_id: int, google_account_id: Optional[int] = None, skip: int = 0, limit: int = 50
     ) -> List[MySurveyDetail]:
         """Получить мои опросы"""
-        surveys = self.survey_repo.get_user_surveys(self.db, user_id, skip, limit)
+
+        google_account = self._get_google_account_for_user(user_id, google_account_id)
+
+        surveys = self.survey_repo.get_user_surveys(self.db, google_account.id, skip, limit)
+
         result = []
         for survey in surveys:
             stats = self.survey_repo.get_survey_stats(self.db, survey.id)

@@ -5,6 +5,8 @@ from app.schemas import UserProfile, UserUpdate, TransactionItem
 from app.models import User
 import logging
 
+from app.services.user_service import UserService
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -20,11 +22,11 @@ async def get_my_profile(current_user: User = Depends(get_current_active_user)):
 async def update_my_profile(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    user_service=Depends(get_user_service),
+    user_service: UserService = Depends(get_user_service),
 ):
     """Обновить свой профиль"""
     updated_user = user_service.update_profile(current_user, user_update)
-    return UserProfile.model_validate(updated_user)
+    return UserProfile.model_validate(updated_user, from_attributes=True)
 
 
 # Получить историю транзакций через сервис

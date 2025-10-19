@@ -60,7 +60,7 @@ class TestSurveysPublicEndpoints:
         response = client.get("/api/v1/surveys?limit=0")
         assert response.status_code == 422
 
-    @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
+    # @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
     def test_get_survey_detail_unauthenticated(self, client: TestClient):
         """Тест получения деталей опроса без аутентификации"""
         # Тестируем с несуществующим ID
@@ -85,8 +85,7 @@ class TestSurveysPrivateEndpoints:
         
         assert response.status_code in [401, 403]
 
-    @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
-    def test_get_my_surveys_authenticated(self, client: TestClient, auth_headers):
+    def test_get_my_surveys_authenticated(self, client: TestClient, auth_headers, test_primary_google_account):
         """Тест получения моих опросов с аутентификацией"""
         response = client.get("/api/v1/surveys/my/", headers=auth_headers)
         
@@ -94,8 +93,7 @@ class TestSurveysPrivateEndpoints:
         data = response.json()
         assert isinstance(data, list)
 
-    @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
-    def test_get_my_surveys_with_pagination(self, client: TestClient, auth_headers):
+    def test_get_my_surveys_with_pagination(self, client: TestClient, auth_headers, test_primary_google_account):
         """Тест получения моих опросов с пагинацией"""
         response = client.get("/api/v1/surveys/my/?skip=0&limit=5", headers=auth_headers)
         
@@ -183,8 +181,7 @@ class TestSurveysPrivateEndpoints:
         
         assert response.status_code in [401, 403]
 
-    @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
-    def test_get_my_survey_detail_not_found(self, client: TestClient, auth_headers):
+    def test_get_my_survey_detail_not_found(self, client: TestClient, auth_headers, test_primary_google_account):
         """Тест получения несуществующего моего опроса"""
         response = client.get("/api/v1/surveys/my/999", headers=auth_headers)
         
@@ -201,8 +198,7 @@ class TestSurveysPrivateEndpoints:
         
         assert response.status_code in [401, 403]
 
-    @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
-    def test_update_survey_not_found(self, client: TestClient, auth_headers):
+    def test_update_survey_not_found(self, client: TestClient, auth_headers, test_primary_google_account):
         """Тест обновления несуществующего опроса"""
         update_data = {
             "title": "Updated Survey",
@@ -219,8 +215,7 @@ class TestSurveysPrivateEndpoints:
         
         assert response.status_code in [401, 403]
 
-    @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
-    def test_delete_survey_not_found(self, client: TestClient, auth_headers):
+    def test_delete_survey_not_found(self, client: TestClient, auth_headers, test_primary_google_account):
         """Тест удаления несуществующего опроса"""
         response = client.delete("/api/v1/surveys/my/999", headers=auth_headers)
         
