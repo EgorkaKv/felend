@@ -12,11 +12,11 @@ import logging
 
 from app.services.google_auth_service import GoogleAuthService
 
-router = APIRouter()
+router = APIRouter(tags=["Authentication"], prefix="/auth")
 logger = logging.getLogger(__name__)
 
 
-@router.get("/auth/google/login")
+@router.get("/google/login")
 async def google_login(
     current_user: User = Depends(get_current_active_user),
     google_auth_service: GoogleAuthService=Depends(get_google_auth_service),
@@ -45,7 +45,7 @@ async def google_login(
         )
 
 
-@router.get("/auth/google/callback")
+@router.get("/google/callback")
 async def google_callback(
     code: str = Query(..., description="Authorization code from Google"),
     state: str = Query(..., description="JWT state with user_id"),

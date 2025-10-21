@@ -8,6 +8,7 @@ from app.services.google_accounts_service import GoogleAccountsService
 from fastapi import Depends
 from app.api.deps import get_google_accounts_service
 from app.models import User
+from app.schemas import GoogleAccountsListResponse, ErrorResponse
 from datetime import datetime, timezone
 import logging
 
@@ -16,7 +17,14 @@ router = APIRouter(prefix="/google-accounts", tags=["Google-accounts"])
 logger = logging.getLogger(__name__)
 
 
-@router.get("")
+@router.get(
+    "",
+    response_model=GoogleAccountsListResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Authentication required"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    }
+)
 async def list_google_accounts(
     current_user: User = Depends(get_current_active_user),
     google_accounts_service: GoogleAccountsService = Depends(
@@ -24,7 +32,7 @@ async def list_google_accounts(
     ),
 ):
     """
-    Получить список всех Google аккаунтов пользователя
+    Get list of all user's Google accounts
     """
     try:
         google_accounts = google_accounts_service.get_user_google_accounts(
@@ -32,22 +40,26 @@ async def list_google_accounts(
         )
         accounts_data = []
         for account in google_accounts:
+            from app.schemas import GoogleAccountDetail
             accounts_data.append(
-                {
-                    "id": account.id,
-                    "email": account.email,
-                    "name": account.name,
-                    "is_primary": account.is_primary,
-                    "is_active": account.is_active,
-                    "created_at": account.created_at.isoformat(),
-                }
+                GoogleAccountDetail(
+                    id=account.id,
+                    email=account.email,
+                    name=account.name,
+                    is_primary=account.is_primary,
+                    is_active=account.is_active,
+                    created_at=account.created_at,
+                )
             )
-        return {"google_accounts": accounts_data, "total_accounts": len(accounts_data)}
+        return GoogleAccountsListResponse(
+            google_accounts=accounts_data, 
+            total_accounts=len(accounts_data)
+        )
     except Exception as e:
         logger.error(f"Error listing Google accounts: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ошибка при получении Google аккаунтов",
+            detail="Error retrieving Google accounts",
         )
 
 

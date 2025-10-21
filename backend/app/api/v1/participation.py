@@ -2,7 +2,7 @@
 API endpoints для участия в опросах
 """
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 
 from typing import Dict, Any
 
@@ -12,11 +12,11 @@ from app.services.participation_service import ParticipationService
 from app.schemas import SurveyStartResponse, SurveyVerifyResponse, ErrorResponse
 
 
-router = APIRouter()
+router = APIRouter(tags=["Participation"], prefix="/surveys")
 
 
 @router.post(
-    "/surveys/{survey_id}/participate", 
+    "/{survey_id}/participate", 
     response_model=SurveyStartResponse,
     responses={
         400: {"model": ErrorResponse, "description": "Validation error"},
@@ -41,7 +41,7 @@ async def start_survey_participation(
 
 
 @router.post(
-    "/surveys/{survey_id}/verify", 
+    "/{survey_id}/verify", 
     response_model=SurveyVerifyResponse,
     responses={
         400: {"model": ErrorResponse, "description": "Validation error"},
@@ -65,7 +65,7 @@ async def verify_survey_completion(
     return result
 
 
-@router.get("/surveys/{survey_id}/my-status")
+@router.get("/{survey_id}/my-status")
 async def get_my_participation_status(
     survey_id: int,
     current_user: User = Depends(get_current_active_user),

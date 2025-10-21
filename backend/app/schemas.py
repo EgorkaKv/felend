@@ -361,6 +361,23 @@ class FormValidationResponse(BaseModel):
     collects_emails: Optional[bool] = None
 
 
+class SurveyValidationResponse(BaseModel):
+    """Response for POST /surveys/validate endpoint"""
+    form_id: str
+    title: str
+    description: Optional[str] = None
+    collect_emails: bool
+    questions_count: int
+    estimated_time_minutes: int
+    min_rewards: int
+
+
+class GoogleAccountsListResponse(BaseModel):
+    """Response for GET /google-accounts endpoint"""
+    google_accounts: List[GoogleAccountDetail]
+    total_accounts: int
+
+
 # Email Verification schemas
 class RegisterResponse(BaseModel):
     """Ответ после регистрации с токеном верификации"""

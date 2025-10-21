@@ -17,6 +17,7 @@ from app.schemas import (
     MySurveyDetail,
     ApiResponse,
     ErrorResponse,
+    SurveyValidationResponse,
 )
 from app.models import User
 from app.services.google_forms_service import GoogleFormsService
@@ -139,7 +140,17 @@ async def create_survey(
     return survey
 
 
-@router.post("/validate")
+@router.post(
+    "/validate",
+    response_model=SurveyValidationResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid form URL"},
+        401: {"model": ErrorResponse, "description": "Authentication required"},
+        403: {"model": ErrorResponse, "description": "No access to form with this Google account"},
+        404: {"model": ErrorResponse, "description": "Google account not found"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    }
+)
 async def validate_google_form(
     form_url: HttpUrl = Body(...),
     google_account_id: int = Body(...),
@@ -147,7 +158,7 @@ async def validate_google_form(
     google_accounts_service: GoogleAccountsService = Depends(get_google_accounts_service),
 ):
     """
-    Валидировать Google Form URL и проверить доступ
+    Validate Google Form URL and check access
     """
 
     # Получаем Google аккаунт из тела запроса и проверяем принадлежность пользователю
@@ -162,15 +173,15 @@ async def validate_google_form(
 
     validated_form: GoogleForm = await forms_service.validate_form_access(str(form_url))
 
-    return {
-        "form_id": validated_form.formId,
-        "title": validated_form.info.title,
-        "description": validated_form.info.description,
-        "collect_emails": validated_form.settings.collect_emails,
-        "questions_count": len(validated_form.items),
-        "estimated_time_minutes": len(validated_form.items) // 3 + 1,
-        "min_rewards": 10
-    }
+    return SurveyValidationResponse(
+        form_id=validated_form.formId,
+        title=validated_form.info.title,
+        description=validated_form.info.description,
+        collect_emails=validated_form.settings.collect_emails or False,
+        questions_count=len(validated_form.items),
+        estimated_time_minutes=len(validated_form.items) // 3 + 1,
+        min_rewards=10
+    )
 
 @router.get(
     "/my/{survey_id}", 
