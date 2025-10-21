@@ -1,35 +1,70 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from '@/components/PublicRoute';
+import Snackbar from '@/components/Snackbar';
+import MainLayout from '@/components/Layout';
+
+// Pages
+import WelcomeScreen from '@/pages/WelcomeScreen';
+import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
+import ConfirmEmailPage from '@/pages/ConfirmEmailPage';
+import HomeFeed from '@/pages/HomeFeed';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Routes>
+        {/* Публичные маршруты (без Layout) */}
+        <Route
+          path="/welcome"
+          element={
+            <PublicRoute>
+              <WelcomeScreen />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
+        <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+
+        {/* Защищенные маршруты с Layout */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/" element={<HomeFeed />} />
+          <Route path="/my-surveys" element={<div>My Surveys - TODO</div>} />
+          <Route path="/add-survey" element={<div>Add Survey - TODO</div>} />
+          <Route path="/history" element={<div>History - TODO</div>} />
+          <Route path="/profile" element={<div>Profile - TODO</div>} />
+        </Route>
+
+        {/* Fallback - redirect на главную */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* Global Snackbar */}
+      <Snackbar />
     </>
-  )
+  );
 }
 
-export default App
+export default App;
