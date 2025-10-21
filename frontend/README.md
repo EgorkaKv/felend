@@ -1,73 +1,30 @@
-# React + TypeScript + Vite
+# Проект Felend
+- Концепция: Онлайн платформа для размещения своих опросников и прохождения чужих опросников
+- Проблема, которую мы решаем: Студенты, работающие над курсовыми, дипломными и научными работами, сталкиваются с огромной трудностью при сборе необходимого количества респондентов для своих опросов.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Ключевые гипотезы
+- Гипотеза ценности: Мы предполагаем, что студенты готовы тратить свое время на прохождение чужих опросов, чтобы получить ответы на свой опрос бесплатно. Ценность полученных данных для них выше, чем затраты времени.
+- Гипотеза роста: Мы предполагаем, что студенты, успешно собравшие ответы, будут рекомендовать платформу своим одногруппникам и друзьям, у которых есть та же проблема (виральный эффект).
+- Гипотеза осуществимости: Мы предполагаем, что можем создать достаточно простой и понятный инструмент, который позволит без труда создать опрос, пройти чужой и увидеть результаты.
 
-Currently, two official plugins are available:
+### Ценностное предложение (Ядро проекта)
+Для студентов-исследователей Felend — это платформа, которая помогает быстро и бесплатно набрать нужное количество респондентов для учебных опросов за счет участия в сообществе взаимопомощи.
+Ключевые ценности:
+Экономия денег: 100% бесплатно, не нужно платить за ответы.
+Экономия времени: Больше не нужно спамить в чатах и просить друзей. Платформа сама найдет респондентов.
+Достижение цели: Гарантированное получение нужного количества ответов для сдачи курсовой или диплома.
+Принцип "ты — мне, я — тебе": Справедливая система, где твой вклад в сообщество напрямую конвертируется в пользу для тебя.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Особенности реализации
+- интеграция с гугл формами (все опросы на платформе это подключенные гугл формы)
+- возможность подключения несколькоких гугл аккаунтов
+- Бекенд 
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Backend API уже готово на FastAPI, так что мы не будем на это отвлекаться. Я буду предоставлять всю необходимую информацию об API по твоим запросам
+2. То сколько баллов получит пользователь за прохождение одного опроса зависит от объема опроса, а так же размера награды указанной автором. То сколько баллов стоит получение одного ответа на опрос зависит от тех же параметров. Начальный баланс для новых пользователей 10 баллов
+3. После того как пользователь заполнил гугл форму он возвращается на Felend и нажимает кнопку подтверждения, после чего бекенд считывает ответы на форму через Google Forms API и ищет респондента с нужным email, если он найден, то прохождение засчитывается
+4. Для аутентификации используются JWT-токены, а гугл аккаунт пользователей подключаются с помощью OAuth2
+5. Макетов и дизайна нету, я хочу использовать библиотеку Material-UI
+6. Создатель опроса может: максимальное количество нужных ответов, приостановить или удалить свой опрос, критерии для респондетов могут быть самые разные: возраст, пол, занятость, доход)
+7. Пока что порядок показа определяется просто по порядку создания опросов, но в будущем планируется продвинутая система ранжирования по релевантности, свежести, прибыльности. На данный момент категории опросов и теги не реализованы, но планируются в будущем. Нужен поиск.
+8. Конечно планируется использование Redux. для работы с API — SWR.
