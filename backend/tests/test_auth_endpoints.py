@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 class TestAuthEndpoints:
     """Тесты для /auth/* endpoints"""
 
+    @pytest.mark.smoke
     def test_register_success(self, client: TestClient):
         """Тест успешной регистрации пользователя"""
         user_data = {
@@ -50,6 +51,7 @@ class TestAuthEndpoints:
         
         assert response.status_code == 422  # Validation error
 
+    @pytest.mark.smoke
     def test_login_success(self, client: TestClient, test_user, test_user_data):
         """Тест успешного входа"""
         login_data = {

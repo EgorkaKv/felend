@@ -32,6 +32,7 @@ class TestUsersPublicEndpoints:
 class TestUsersPrivateEndpoints:
     """Тесты для приватных endpoints пользователей"""
 
+    @pytest.mark.smoke
     def test_get_my_profile_success(self, client: TestClient, auth_headers, test_user):
         """Тест успешного получения своего профиля"""
         response = client.get("/api/v1/users/me", headers=auth_headers)
@@ -84,6 +85,7 @@ class TestUsersPrivateEndpoints:
         assert response.status_code == 422
 
     # @pytest.mark.skip(reason="FIXME: User service get_transactions method implementation needed")
+    @pytest.mark.smoke
     def test_get_transactions_empty(self, client: TestClient, auth_headers):
         """Тест получения пустого списка транзакций"""
         response = client.get("/api/v1/users/me/transactions", headers=auth_headers)

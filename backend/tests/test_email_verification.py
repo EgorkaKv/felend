@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 class TestEmailVerificationFlow:
     """Тесты для полного flow верификации email"""
 
+    @pytest.mark.smoke
     def test_register_returns_verification_token(self, client: TestClient):
         """Тест: регистрация возвращает verification_token"""
         user_data = {
@@ -275,6 +276,7 @@ class TestEmailVerificationFlow:
         # Должен вернуть ошибку (пользователь неактивен)
         assert login_response.status_code == 403
 
+    @pytest.mark.smoke
     def test_full_verification_flow(self, client: TestClient, db_session):
         """Тест: полный flow верификации от регистрации до логина"""
         # 1. Регистрация

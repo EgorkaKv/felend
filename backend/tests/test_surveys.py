@@ -10,6 +10,7 @@ class TestSurveysPublicEndpoints:
     """Тесты для публичных endpoints опросов"""
 
     # @pytest.mark.skip(reason="FIXME: Endpoint returns 500 - survey service issue")
+    @pytest.mark.smoke
     def test_get_surveys_feed_unauthenticated(self, client: TestClient):
         """Тест получения ленты опросов без аутентификации"""
         response = client.get("/api/v1/surveys")
@@ -116,6 +117,7 @@ class TestSurveysPrivateEndpoints:
         
         assert response.status_code in [401, 403]
 
+    @pytest.mark.smoke
     def test_create_survey_success(self, client: TestClient, auth_headers):
         """Тест успешного создания опроса"""
         survey_data = {

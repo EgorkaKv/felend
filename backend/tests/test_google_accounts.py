@@ -39,6 +39,7 @@ class TestGoogleAccountsPrivateEndpoints:
     """Тесты для приватных endpoints Google аккаунтов"""
 
     # @pytest.mark.skip(reason="FIXME: Google accounts service not fully implemented")
+    @pytest.mark.smoke
     def test_list_google_accounts_empty(self, client: TestClient, auth_headers):
         """Тест получения пустого списка Google аккаунтов"""
         response = client.get("/api/v1/google-accounts", headers=auth_headers)

@@ -16,6 +16,7 @@ class TestGoogleOAuth:
         # Должен требовать аутентификации  
         assert response.status_code == 401
 
+    @pytest.mark.smoke
     def test_google_login_with_auth_returns_url(self, client: TestClient, auth_headers):
         """Тест успешного получения Google OAuth URL"""
         response = client.get("/api/v1/auth/google/login", headers=auth_headers)
