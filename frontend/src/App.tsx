@@ -12,6 +12,9 @@ import ConfirmEmailPage from '@/pages/ConfirmEmailPage';
 import HomeFeed from '@/pages/HomeFeed';
 import SurveyCompletionPage from '@/pages/SurveyCompletionPage';
 import AddSurveyPage from '@/pages/AddSurveyPage';
+import MySurveysPage from '@/pages/MySurveysPage';
+import HistoryPage from '@/pages/HistoryPage';
+import ProfilePage from '@/pages/ProfilePage';
 
 function App() {
   return (
@@ -54,10 +57,10 @@ function App() {
         >
           <Route path="/" element={<HomeFeed />} />
           <Route path="/survey/:id/complete" element={<SurveyCompletionPage />} />
-          <Route path="/my-surveys" element={<div>My Surveys - TODO</div>} />
+          <Route path="/my-surveys" element={<MySurveysPage />} />
           <Route path="/add-survey" element={<AddSurveyPage />} />
-          <Route path="/history" element={<div>History - TODO</div>} />
-          <Route path="/profile" element={<div>Profile - TODO</div>} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         {/* Fallback - redirect на главную */}

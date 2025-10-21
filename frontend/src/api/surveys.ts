@@ -80,6 +80,15 @@ export const verifyParticipation = async (surveyId: number) => {
   return response.data;
 };
 
+// Изменить статус опроса (пауза/возобновление)
+export const updateSurveyStatus = async (surveyId: number, status: 'active' | 'paused') => {
+  if (status === 'paused') {
+    return pauseSurvey(surveyId);
+  } else {
+    return resumeSurvey(surveyId);
+  }
+};
+
 // Приостановить опрос
 export const pauseSurvey = async (surveyId: number) => {
   const response = await apiClient.post<{ message: string }>(`/surveys/my/${surveyId}/pause`);
