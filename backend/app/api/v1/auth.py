@@ -1,6 +1,12 @@
 from fastapi import APIRouter, Depends, status
-from app.api.deps import get_auth_service
-from app.schemas import UserRegister, UserLogin, Token, TokenRefresh, ErrorResponse
+from app.api.deps import get_auth_service, get_db
+from app.schemas import (
+    UserRegister, UserLogin, Token, TokenRefresh, ErrorResponse,
+    RegisterResponse, RequestVerificationCode, VerificationCodeResponse,
+    VerifyEmail, EmailVerifiedResponse, UserProfile
+)
+from app.services.email_verification_service import EmailVerificationService
+from sqlalchemy.orm import Session
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -8,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post(
     "/register", 
-    response_model=Token, 
+    response_model=RegisterResponse, 
     status_code=status.HTTP_201_CREATED,
     responses={
         400: {"model": ErrorResponse, "description": "Validation error"},
@@ -17,18 +23,22 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     }
 )
 async def register(user_data: UserRegister, auth_service=Depends(get_auth_service)):
-    """Register a new user"""
-    user = auth_service.register_user(
+    """
+    Register a new user
+    
+    Creates an inactive user account and returns a verification token.
+    User must verify their email to activate the account.
+    """
+    user, verification_token = auth_service.register_user(
         email=user_data.email,
         password=user_data.password,
         full_name=user_data.full_name,
     )
-    access_token, refresh_token = auth_service.create_tokens(user)
-    return Token(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        token_type="bearer",
-        expires_in=1800,  # 30 minutes
+    
+    return RegisterResponse(
+        verification_token=verification_token,
+        email=user.email,
+        message="Registration successful. Please verify your email to activate your account."
     )
 
 
@@ -76,4 +86,71 @@ async def refresh_token(
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=1800,  # 30 minutes
+    )
+
+
+@router.post(
+    "/request-verification-code",
+    response_model=VerificationCodeResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid verification token"},
+        404: {"model": ErrorResponse, "description": "Verification not found"},
+        429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    }
+)
+async def request_verification_code(
+    request: RequestVerificationCode,
+    db: Session = Depends(get_db)
+):
+    """
+    Request a verification code
+    
+    Sends a 6-digit verification code to the user's email.
+    Can only be requested once per 60 seconds.
+    """
+    verification_service = EmailVerificationService(db)
+    message, masked_email = verification_service.request_verification_code(request.verification_token)
+    
+    return VerificationCodeResponse(
+        success=True,
+        message=message,
+        email_masked=masked_email
+    )
+
+
+@router.post(
+    "/verify-email",
+    response_model=EmailVerifiedResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid verification code"},
+        404: {"model": ErrorResponse, "description": "Verification not found"},
+        410: {"model": ErrorResponse, "description": "Verification expired or used"},
+        429: {"model": ErrorResponse, "description": "Too many attempts"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    }
+)
+async def verify_email(
+    request: VerifyEmail,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify email with code
+    
+    Verifies the email address using the 6-digit code.
+    Activates the user account and returns authentication tokens.
+    Maximum 5 attempts allowed.
+    """
+    verification_service = EmailVerificationService(db)
+    access_token, refresh_token, user_dict = verification_service.verify_email(
+        verification_token=request.verification_token,
+        code=request.code
+    )
+    
+    return EmailVerifiedResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=1800,
+        user=UserProfile(**user_dict)
     )

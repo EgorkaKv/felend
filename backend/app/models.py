@@ -157,3 +157,23 @@ class BalanceTransaction(Base):
     # Связи
     user = relationship("User", back_populates="transactions")
     related_survey = relationship("Survey")
+
+
+class EmailVerification(Base):
+    """Модель для хранения токенов и кодов верификации email"""
+    __tablename__ = "email_verifications"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    verification_token: Mapped[str] = mapped_column(String(36), unique=True, index=True, nullable=False)  # UUID4
+    verification_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)  # 6-значный код
+    code_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # код действителен 15 минут
+    token_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # токен действителен 24 часа
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False)  # был ли использован для успешной верификации
+    attempts: Mapped[int] = mapped_column(Integer, default=0)  # количество неудачных попыток ввода кода
+    last_code_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # для rate limiting
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Связь с пользователем
+    user = relationship("User")

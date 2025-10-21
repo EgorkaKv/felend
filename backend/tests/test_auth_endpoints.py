@@ -20,12 +20,11 @@ class TestAuthEndpoints:
         
         assert response.status_code == 201
         data = response.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert "token_type" in data
-        assert "expires_in" in data
-        assert data["token_type"] == "bearer"
-        assert data["expires_in"] == 1800
+        assert "verification_token" in data
+        assert "email" in data
+        assert "message" in data
+        assert data["email"] == "newuser@example.com"
+        assert "verify your email" in data["message"].lower()
 
     def test_register_duplicate_email(self, client: TestClient, test_user):
         """Тест регистрации с уже существующим email"""

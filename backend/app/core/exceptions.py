@@ -37,6 +37,14 @@ class ErrorCodes:
     GOOGLE_ACCOUNT_NOT_FOUND = "GOOGLE004"
     GOOGLE_TOKEN_INVALID = "GOOGLE005"
     
+    # Email Verification
+    VERIFICATION_TOKEN_EXPIRED = "VERIFY001"
+    VERIFICATION_TOKEN_INVALID = "VERIFY002"
+    VERIFICATION_CODE_INVALID = "VERIFY003"
+    VERIFICATION_TOO_MANY_ATTEMPTS = "VERIFY004"
+    VERIFICATION_RATE_LIMIT = "VERIFY005"
+    VERIFICATION_ALREADY_USED = "VERIFY006"
+    
     # Validation
     VALIDATION_ERROR = "VALIDATION001"
     MISSING_REQUIRED_FIELD = "VALIDATION002"
@@ -236,6 +244,66 @@ class ResponseVerificationException(ValidationException):
         if user_id:
             context["user_id"] = str(user_id)
         super().__init__(f"Response verification failed: {detail}", ErrorCodes.VALIDATION_ERROR, context)
+
+
+# Email Verification Exceptions
+class VerificationTokenExpiredException(AuthenticationException):
+    def __init__(self, token: str):
+        super().__init__(
+            "Verification token has expired",
+            ErrorCodes.VERIFICATION_TOKEN_EXPIRED,
+            {"token": token[:8] + "..."}  # Only show first 8 chars for security
+        )
+
+
+class VerificationTokenInvalidException(FelendException):
+    def __init__(self, token: str):
+        super().__init__(
+            "Verification token is invalid or not found",
+            status.HTTP_404_NOT_FOUND,
+            ErrorCodes.VERIFICATION_TOKEN_INVALID,
+            {"token": token[:8] + "..." if len(token) > 8 else "invalid"}
+        )
+
+
+class InvalidVerificationCodeException(FelendException):
+    def __init__(self, attempts_left: int):
+        super().__init__(
+            f"Invalid verification code. {attempts_left} attempts remaining",
+            status.HTTP_400_BAD_REQUEST,
+            ErrorCodes.VERIFICATION_CODE_INVALID,
+            {"attempts_left": attempts_left}
+        )
+
+
+class TooManyAttemptsException(FelendException):
+    def __init__(self, max_attempts: int):
+        super().__init__(
+            f"Too many failed attempts. Maximum {max_attempts} attempts allowed",
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            ErrorCodes.VERIFICATION_TOO_MANY_ATTEMPTS,
+            {"max_attempts": max_attempts}
+        )
+
+
+class VerificationRateLimitException(FelendException):
+    def __init__(self, retry_after_seconds: int):
+        super().__init__(
+            f"Please wait {retry_after_seconds} seconds before requesting a new code",
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            ErrorCodes.VERIFICATION_RATE_LIMIT,
+            {"retry_after_seconds": retry_after_seconds}
+        )
+
+
+class VerificationAlreadyUsedException(FelendException):
+    def __init__(self):
+        super().__init__(
+            "This verification token has already been used",
+            status.HTTP_410_GONE,
+            ErrorCodes.VERIFICATION_ALREADY_USED,
+            {}
+        )
 
 
 # Alias для обратной совместимости

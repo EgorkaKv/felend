@@ -359,3 +359,39 @@ class FormValidationResponse(BaseModel):
     question_count: Optional[int] = 0
     recommended_reward: Optional[int] = 0
     collects_emails: Optional[bool] = None
+
+
+# Email Verification schemas
+class RegisterResponse(BaseModel):
+    """Ответ после регистрации с токеном верификации"""
+    verification_token: str
+    email: str
+    message: str = "Registration successful. Please verify your email to activate your account."
+
+
+class RequestVerificationCode(BaseModel):
+    """Запрос на отправку кода верификации"""
+    verification_token: str = Field(..., min_length=36, max_length=36)
+
+
+class VerificationCodeResponse(BaseModel):
+    """Ответ после отправки кода верификации"""
+    success: bool
+    message: str
+    email_masked: str  # Маскированный email для безопасности
+
+
+class VerifyEmail(BaseModel):
+    """Запрос на подтверждение email с кодом"""
+    verification_token: str = Field(..., min_length=36, max_length=36)
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class EmailVerifiedResponse(BaseModel):
+    """Ответ после успешной верификации email"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: UserProfile
+    message: str = "Email verified successfully. Welcome to Felend!"

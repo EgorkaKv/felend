@@ -3,7 +3,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build, Resource
 from googleapiclient.errors import HttpError
 import logging
-from app.core.exceptions import GoogleAPIException, ValidationException
+from app.core.exceptions import GoogleAPIException, SurveyValidationException, ValidationException
 from app.models import GoogleAccount
 from app.schemas import EmailCollectionType, FormValidationResponse, GoogleForm
 from app.core.config import settings
@@ -103,12 +103,18 @@ class GoogleFormsService:
         form_id = GoogleFormsService.extract_form_id_from_url(url)
         if not form_id:
             raise ValidationException("Invalid Google Forms URL format")
-
-        try:
-            return await self.get_form_info(form_id)
         
-        except Exception as e:
-            raise ValidationException(f"Cannot access Google Form: {str(e)}")
+        form = await self.get_form_info(form_id)
+
+        if not form.settings.collect_emails:
+            raise SurveyValidationException(
+                "The Google Form must be set to collect email addresses. Current collect email settings: "
+                + str(form.settings.emailCollectionType),
+                form.formId,
+            )
+        
+        return form
+        
         
 
     @staticmethod

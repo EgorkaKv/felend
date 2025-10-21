@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Body, Depends, status, Query
 from typing import List, Optional
+
+from pydantic import HttpUrl
 from app.api.deps import (
     get_current_active_user,
     get_current_user_optional,
@@ -7,6 +9,7 @@ from app.api.deps import (
 )
 from app.api.deps import get_survey_service
 from app.schemas import (
+    GoogleForm,
     SurveyCreate,
     SurveyUpdate,
     SurveyListItem,
@@ -131,10 +134,43 @@ async def create_survey(
     forms_service = get_google_forms_service_for_account(google_account)
 
     survey = await survey_service.create_survey(
-        survey_data, current_user.id, forms_service
+        survey_data, current_user, forms_service
     )
     return survey
 
+
+@router.post("/validate")
+async def validate_google_form(
+    form_url: HttpUrl = Body(...),
+    google_account_id: int = Body(...),
+    current_user: User = Depends(get_current_active_user),
+    google_accounts_service: GoogleAccountsService = Depends(get_google_accounts_service),
+):
+    """
+    Валидировать Google Form URL и проверить доступ
+    """
+
+    # Получаем Google аккаунт из тела запроса и проверяем принадлежность пользователю
+    google_account = google_accounts_service.check_user_google_account(
+        current_user.id, 
+        google_account_id
+    )
+
+    # Создаем GoogleFormsService для этого аккаунта
+    from app.api.deps import get_google_forms_service_for_account
+    forms_service: GoogleFormsService = get_google_forms_service_for_account(google_account)
+
+    validated_form: GoogleForm = await forms_service.validate_form_access(str(form_url))
+
+    return {
+        "form_id": validated_form.formId,
+        "title": validated_form.info.title,
+        "description": validated_form.info.description,
+        "collect_emails": validated_form.settings.collect_emails,
+        "questions_count": len(validated_form.items),
+        "estimated_time_minutes": len(validated_form.items) // 3 + 1,
+        "min_rewards": 10
+    }
 
 @router.get(
     "/my/{survey_id}", 

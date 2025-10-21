@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 import re
-from app.models import GoogleAccount, Survey, SurveyStatus
+from app.models import GoogleAccount, Survey, SurveyStatus, User
 from app.repositories.survey_repository import SurveyRepository, survey_repository
 from app.repositories.user_repository import UserRepository, user_repository
 from app.services.google_accounts_service import GoogleAccountsService
@@ -34,7 +34,7 @@ class SurveyService:
     async def create_survey(
         self,
         survey_data: SurveyCreate,
-        author_id: int,
+        author: User,
         forms_service: GoogleFormsService,
     ) -> Survey:
         """Создать новый опрос"""
@@ -42,21 +42,10 @@ class SurveyService:
         form: GoogleForm = await forms_service.validate_form_access(
             str(survey_data.google_form_url)
         )
-
-        if not form.settings.collect_emails:
-            raise SurveyValidationException(
-                "The Google Form must be set to collect email addresses. Current collect email settings: "
-                + str(form.settings.emailCollectionType),
-                form.formId,
-            )
-
-        author = self.user_repo.get(self.db, author_id)
-        if not author:
-            raise UserNotFoundException(user_id=author_id)
-
+        
         if author.balance < survey_data.reward_per_response:
             raise InsufficientBalanceException(
-                survey_data.reward_per_response, author.balance, author_id
+                survey_data.reward_per_response, author.balance, author.id
             )
 
         survey = Survey(
