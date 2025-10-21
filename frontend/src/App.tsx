@@ -10,6 +10,8 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import ConfirmEmailPage from '@/pages/ConfirmEmailPage';
 import HomeFeed from '@/pages/HomeFeed';
+import SurveyCompletionPage from '@/pages/SurveyCompletionPage';
+import AddSurveyPage from '@/pages/AddSurveyPage';
 
 function App() {
   return (
@@ -51,8 +53,9 @@ function App() {
           }
         >
           <Route path="/" element={<HomeFeed />} />
+          <Route path="/survey/:id/complete" element={<SurveyCompletionPage />} />
           <Route path="/my-surveys" element={<div>My Surveys - TODO</div>} />
-          <Route path="/add-survey" element={<div>Add Survey - TODO</div>} />
+          <Route path="/add-survey" element={<AddSurveyPage />} />
           <Route path="/history" element={<div>History - TODO</div>} />
           <Route path="/profile" element={<div>Profile - TODO</div>} />
         </Route>
