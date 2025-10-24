@@ -3,9 +3,12 @@ from app.api.deps import get_auth_service, get_db
 from app.schemas import (
     UserRegister, UserLogin, Token, TokenRefresh, ErrorResponse,
     RegisterResponse, RequestVerificationCode, VerificationCodeResponse,
-    VerifyEmail, EmailVerifiedResponse, UserProfile
+    VerifyEmail, EmailVerifiedResponse, UserProfile,
+    ForgotPasswordRequest, ForgotPasswordResponse,
+    PasswordResetRequest, PasswordResetResponse
 )
 from app.services.email_verification_service import EmailVerificationService
+from app.services.password_reset_service import PasswordResetService
 from sqlalchemy.orm import Session
 
 
@@ -153,4 +156,69 @@ async def verify_email(
         token_type="bearer",
         expires_in=1800,
         user=UserProfile(**user_dict)
+    )
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid email format"},
+        429: {"model": ErrorResponse, "description": "Too many requests"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    }
+)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Request password reset code
+    
+    Sends a 6-digit code to the user's email for password reset.
+    Rate limited to 3 requests per hour per user.
+    Code expires in 15 minutes.
+    """
+    password_reset_service = PasswordResetService(db)
+    message, masked_email = password_reset_service.request_password_reset(request.email)
+    
+    return ForgotPasswordResponse(
+        success=True,
+        message=message,
+        email_masked=masked_email
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=PasswordResetResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid code or request"},
+        404: {"model": ErrorResponse, "description": "User not found or no active reset request"},
+        410: {"model": ErrorResponse, "description": "Reset request expired"},
+        429: {"model": ErrorResponse, "description": "Too many attempts"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    }
+)
+async def reset_password(
+    request: PasswordResetRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Reset password with verification code
+    
+    Verifies the 6-digit code and resets the user's password.
+    Maximum 5 attempts allowed per reset request.
+    """
+    password_reset_service = PasswordResetService(db)
+    user_data = password_reset_service.reset_password(
+        email=request.email,
+        code=request.code,
+        new_password=request.new_password
+    )
+    
+    return PasswordResetResponse(
+        success=True,
+        message="Password successfully reset",
+        user=user_data
     )

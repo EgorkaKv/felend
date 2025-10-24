@@ -412,3 +412,31 @@ class EmailVerifiedResponse(BaseModel):
     expires_in: int
     user: UserProfile
     message: str = "Email verified successfully. Welcome to Felend!"
+
+
+# Password Reset schemas
+class ForgotPasswordRequest(BaseModel):
+    """Запрос на сброс пароля"""
+    email: EmailStr = Field(..., description="Email address for password reset")
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Ответ после запроса на сброс пароля"""
+    success: bool
+    message: str
+    email_masked: str  # Маскированный email для безопасности
+
+
+class PasswordResetRequest(BaseModel):
+    """Запрос на сброс пароля с кодом"""
+    email: EmailStr = Field(..., description="Email address")
+    code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$", description="6-digit verification code")
+    new_password: str = Field(..., min_length=6, description="New password")
+
+
+class PasswordResetResponse(BaseModel):
+    """Ответ после успешного сброса пароля"""
+    success: bool
+    message: str
+    user: dict  # Базовые данные пользователя
+

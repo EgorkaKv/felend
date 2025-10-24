@@ -19,6 +19,11 @@ class SurveyStatus(enum.Enum):
     COMPLETED = "completed"   # завершен
 
 
+class VerificationType(enum.Enum):
+    EMAIL_VERIFICATION = "email_verification"  # верификация email при регистрации
+    PASSWORD_RESET = "password_reset"          # сброс пароля
+
+
 class User(Base):
     __tablename__ = "users"
     
@@ -165,6 +170,11 @@ class EmailVerification(Base):
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    verification_type: Mapped[VerificationType] = mapped_column(
+        SQLEnum(VerificationType), 
+        nullable=False, 
+        default=VerificationType.EMAIL_VERIFICATION
+    )
     verification_token: Mapped[str] = mapped_column(String(36), unique=True, index=True, nullable=False)  # UUID4
     verification_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)  # 6-значный код
     code_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # код действителен 15 минут

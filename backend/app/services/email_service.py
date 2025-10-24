@@ -157,6 +157,150 @@ class EmailService:
                 return True
             return False
     
+    def _create_password_reset_email(self, code: str, recipient_email: str) -> MIMEMultipart:
+        """Создать HTML письмо с кодом сброса пароля"""
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Reset your Felend password"
+        message["From"] = f"{self.from_name} <{self.from_email}>"
+        message["To"] = recipient_email
+        
+        # Текстовая версия
+        text = f"""
+        Password Reset Request
+        
+        Your password reset code is: {code}
+        
+        This code will expire in 15 minutes.
+        
+        If you didn't request a password reset, please ignore this email or contact support if you have concerns.
+        """
+        
+        # HTML версия
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }}
+                .header {{
+                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                    color: white;
+                    padding: 30px;
+                    text-align: center;
+                    border-radius: 10px 10px 0 0;
+                }}
+                .content {{
+                    background: #f9f9f9;
+                    padding: 30px;
+                    border-radius: 0 0 10px 10px;
+                }}
+                .code-box {{
+                    background: white;
+                    border: 2px dashed #f5576c;
+                    padding: 20px;
+                    text-align: center;
+                    font-size: 32px;
+                    font-weight: bold;
+                    letter-spacing: 5px;
+                    color: #f5576c;
+                    margin: 20px 0;
+                    border-radius: 5px;
+                }}
+                .warning {{
+                    background: #fff3cd;
+                    border-left: 4px solid #ffc107;
+                    padding: 15px;
+                    margin: 20px 0;
+                }}
+                .footer {{
+                    text-align: center;
+                    color: #666;
+                    font-size: 12px;
+                    margin-top: 20px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🔐 Password Reset</h1>
+                </div>
+                <div class="content">
+                    <p>We received a request to reset your Felend password. Use the following code to reset your password:</p>
+                    <div class="code-box">
+                        {code}
+                    </div>
+                    <p><strong>This code will expire in 15 minutes.</strong></p>
+                    <div class="warning">
+                        <p><strong>⚠️ Security Notice:</strong></p>
+                        <p>If you didn't request a password reset, please ignore this email or contact our support team if you have concerns about your account security.</p>
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>&copy; 2025 Felend. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        part1 = MIMEText(text, "plain")
+        part2 = MIMEText(html, "html")
+        
+        message.attach(part1)
+        message.attach(part2)
+        
+        return message
+    
+    def send_password_reset_code(self, email: str, code: str) -> bool:
+        """Отправить код сброса пароля на email"""
+        try:
+            # Если нет настроек SMTP, логируем код вместо отправки (для разработки)
+            if not self.smtp_user or not self.smtp_password:
+                logger.warning(f"SMTP not configured. Password reset code for {email}: {code}")
+                print(f"\n{'='*60}")
+                print(f"🔐 PASSWORD RESET CODE")
+                print(f"{'='*60}")
+                print(f"To: {email}")
+                print(f"Code: {code}")
+                print(f"{'='*60}\n")
+                return True
+            
+            message = self._create_password_reset_email(code, email)
+            
+            # Подключение к SMTP серверу
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.send_message(message)
+            
+            logger.info(f"Password reset email sent successfully to {email}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send password reset email to {email}: {str(e)}")
+            # В production можно выбросить исключение, в dev - просто логируем
+            if settings.DEBUG:
+                logger.warning(f"Development mode: Password reset code for {email}: {code}")
+                print(f"\n{'='*60}")
+                print(f"🔐 PASSWORD RESET CODE (Error fallback)")
+                print(f"{'='*60}")
+                print(f"To: {email}")
+                print(f"Code: {code}")
+                print(f"Error: {str(e)}")
+                print(f"{'='*60}\n")
+                return True
+            return False
+    
     @staticmethod
     def mask_email(email: str) -> str:
         """Маскировать email для безопасности (us***@ex***.com)"""
