@@ -45,6 +45,41 @@
 Без графиков, диаграмм и выгрузки в CSV.
 Цель MVP: Доказать, что студенты готовы использовать такую систему взаимообмена. Если основной цикл работает и люди им пользуются — гипотеза верна, и можно переходить к добавлению более сложных функций (фильтры, аналитика, монетизация).
 
+## Развертывание
+
+### Docker
+
+Приложение можно запустить в Docker контейнере:
+
+```bash
+# Сборка образа
+docker build -t felend-backend .
+
+# Запуск контейнера
+docker run -p 8080:8080 \
+  -e DATABASE_URL="postgresql://user:password@host:5432/felend" \
+  -e SECRET_KEY="your-secret-key" \
+  felend-backend
+```
+
+### Google Cloud Run
+
+Подробная инструкция по развертыванию в Google Cloud Run находится в [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+
+**Быстрое развертывание:**
+
+```bash
+# Установите переменную окружения GCP_PROJECT_ID
+export GCP_PROJECT_ID=your-project-id
+
+# Windows PowerShell
+$env:GCP_PROJECT_ID="your-project-id"
+
+# Запустите скрипт деплоя
+./deploy.sh  # Linux/Mac
+.\deploy.ps1  # Windows PowerShell
+```
+
 ## Тестирование
 
 ### Запуск всех тестов

@@ -18,17 +18,16 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # Google API
-    USE_MOCK_GOOGLE_API: bool = True  # Переключатель для мок-сервиса
-    
-    # Google OAuth & Forms API
-    GOOGLE_SERVICE_ACCOUNT_FILE: str
+    # Google API    
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
     
     # Google Forms API scopes
     GOOGLE_FORMS_SCOPES: str = "https://www.googleapis.com/auth/forms,https://www.googleapis.com/auth/forms.responses.readonly"
+    
+    # CORS
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     
     # Rate limiting
     RATE_LIMIT_REQUESTS: int = 200
@@ -38,6 +37,11 @@ class Settings(BaseSettings):
     WELCOME_BONUS_POINTS: int = 10
     MIN_REWARD_PER_RESPONSE: int = 1
     MAX_REWARD_PER_RESPONSE: int = 50
+    
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS_ORIGINS string into list"""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
     
     class ConfigDict:
         env_file = ".env"
