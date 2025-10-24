@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+from urllib.parse import quote
 
 
 class Settings(BaseSettings):
@@ -71,9 +72,6 @@ class Settings(BaseSettings):
         - "unix_socket": Unix socket connection (GCP Cloud SQL)
           postgresql+psycopg2://user:password@/database?host=/cloudsql/project:region:instance
         """
-        # If legacy DATABASE_URL is set, use it (backward compatibility)
-        if self.DATABASE_URL:
-            return self.DATABASE_URL
         
         # Build URL based on connection type
         if self.DB_CONNECTION_TYPE == "unix_socket":
@@ -85,8 +83,9 @@ class Settings(BaseSettings):
                 )
             
             socket_path = f"{self.DB_SOCKET_DIR}/{self.DB_INSTANCE_CONNECTION_NAME}"
+            encoded_password = quote(self.DB_PASSWORD, safe="")
             return (
-                f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}"
+                f"postgresql+psycopg2://{self.DB_USER}:{encoded_password}"
                 f"@/{self.DB_NAME}?host={socket_path}"
             )
         else:
