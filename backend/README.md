@@ -47,6 +47,33 @@
 
 ## Развертывание
 
+### Конфигурация базы данных
+
+Приложение поддерживает два способа подключения к PostgreSQL:
+- **Public IP** - для локальной разработки (TCP/IP)
+- **Unix Socket** - для GCP Cloud SQL (socket connection)
+
+📖 **Подробная документация:** [docs/DATABASE_CONFIG.md](docs/DATABASE_CONFIG.md)
+
+**Быстрая настройка для локальной разработки:**
+```bash
+DB_CONNECTION_TYPE=public
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=felend
+DB_USER=user
+DB_PASSWORD=password
+```
+
+**Для GCP Cloud Run:**
+```bash
+DB_CONNECTION_TYPE=unix_socket
+DB_INSTANCE_CONNECTION_NAME=project:region:instance
+DB_NAME=felend
+DB_USER=postgres
+DB_PASSWORD=your-password
+```
+
 ### Docker
 
 Приложение можно запустить в Docker контейнере:

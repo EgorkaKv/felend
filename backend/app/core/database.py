@@ -1,13 +1,16 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-import os
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
+# Get database URL from settings
+DATABASE_URL = settings.get_database_url
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/felend")
-
-engine = create_engine(DATABASE_URL)
+# Create engine with appropriate settings
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,  # Verify connections before using them
+    pool_recycle=3600,   # Recycle connections after 1 hour
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
