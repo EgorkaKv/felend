@@ -3,6 +3,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from '@/components/PublicRoute';
 import Snackbar from '@/components/Snackbar';
 import MainLayout from '@/components/Layout';
+import DevTools from '@/components/DevTools';
 
 // Pages
 import WelcomeScreen from '@/pages/WelcomeScreen';
@@ -69,6 +70,9 @@ function App() {
 
       {/* Global Snackbar */}
       <Snackbar />
+      
+      {/* Dev Tools (only in dev mode) */}
+      <DevTools />
     </>
   );
 }

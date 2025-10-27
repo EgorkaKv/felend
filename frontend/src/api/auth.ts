@@ -10,7 +10,11 @@ import type {
 
 // Регистрация
 export const register = async (data: RegisterRequest) => {
-  const response = await apiClient.post<{ confirmation_token: string }>('/auth/register', data);
+  const response = await apiClient.post<{ 
+    verification_token: string;
+    email: string;
+    message: string;
+  }>('/auth/register', data);
   return response.data;
 };
 

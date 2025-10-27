@@ -13,7 +13,7 @@ const RESEND_COOLDOWN = 60; // секунды
 const ConfirmEmailPage = () => {
   const navigate = useNavigate();
   const { verifyEmail } = useAuth();
-  const confirmationToken = useAppSelector((state) => state.auth.confirmationToken);
+  const verificationToken = useAppSelector((state) => state.auth.verificationToken);
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,30 +41,40 @@ const ConfirmEmailPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
-  // Проверка наличия confirmation token
+  // Проверка наличия verification token
   useEffect(() => {
-    if (!confirmationToken) {
+    if (import.meta.env.DEV) {
+      console.log('%c[CONFIRM EMAIL] Page mounted', 'color: #4D96FF; font-weight: bold', {
+        hasVerificationToken: !!verificationToken,
+        verificationToken: verificationToken ? '***' : null,
+      });
+    }
+    
+    if (!verificationToken) {
+      if (import.meta.env.DEV) {
+        console.warn('%c[CONFIRM EMAIL] No verification token, redirecting to /register', 'color: #FF6B6B; font-weight: bold');
+      }
       navigate('/register', { replace: true });
     }
-  }, [confirmationToken, navigate]);
+  }, [verificationToken, navigate]);
 
   // Автоматическая отправка кода при загрузке страницы
   useEffect(() => {
-    if (confirmationToken) {
+    if (verificationToken) {
       handleRequestCode();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async () => {
-    if (!confirmationToken) return;
+    if (!verificationToken) return;
 
     setLoading(true);
     setError('');
 
     try {
       await verifyEmail({
-        confirmation_token: confirmationToken,
+        verification_token: verificationToken,
         code: code,
       });
     } catch {
@@ -76,10 +86,10 @@ const ConfirmEmailPage = () => {
   };
 
   const handleRequestCode = async () => {
-    if (!confirmationToken || !canResend) return;
+    if (!verificationToken || !canResend) return;
 
     try {
-      await requestVerificationCode({ confirmation_token: confirmationToken });
+      await requestVerificationCode({ verification_token: verificationToken });
       setTimer(RESEND_COOLDOWN);
       setCanResend(false);
       setError('');

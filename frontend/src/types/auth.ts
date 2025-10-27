@@ -18,11 +18,11 @@ export interface TokenResponse {
 }
 
 export interface VerificationRequest {
-  confirmation_token: string;
+  verification_token: string;
 }
 
 export interface VerifyEmailRequest {
-  confirmation_token: string;
+  verification_token: string;
   code: string;
 }
 

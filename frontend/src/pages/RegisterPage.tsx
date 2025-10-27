@@ -68,11 +68,26 @@ const RegisterPage = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setLoading(true);
     try {
+      if (import.meta.env.DEV) {
+        console.log('%c[REGISTER] Form submit', 'color: #4D96FF; font-weight: bold', {
+          email: data.email,
+          full_name: data.full_name,
+        });
+      }
+      
       // Убираем confirmPassword перед отправкой
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
+      
       await registerUser(registerData as RegisterRequest);
-    } catch {
+      
+      if (import.meta.env.DEV) {
+        console.log('%c[REGISTER] Success, should navigate to /confirm-email', 'color: #6BCF7F; font-weight: bold');
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('%c[REGISTER] Error', 'color: #FF6B6B; font-weight: bold', error);
+      }
       // Ошибки обрабатываются в useAuth hook
     } finally {
       setLoading(false);

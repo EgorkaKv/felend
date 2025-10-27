@@ -56,12 +56,28 @@ const LoginPage = () => {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     try {
+      if (import.meta.env.DEV) {
+        console.log('%c[LOGIN ATTEMPT]', 'color: #4D96FF; font-weight: bold', {
+          email: data.email,
+          password: '***',
+          rememberMe: data.rememberMe,
+        });
+      }
+      
       await login({
         email: data.email,
         password: data.password,
       });
+      
+      if (import.meta.env.DEV) {
+        console.log('%c[LOGIN SUCCESS]', 'color: #6BCF7F; font-weight: bold');
+      }
+      
       // TODO: Обработать rememberMe если нужно
-    } catch {
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('%c[LOGIN ERROR]', 'color: #FF6B6B; font-weight: bold', error);
+      }
       // Ошибки обрабатываются в useAuth hook
     } finally {
       setLoading(false);

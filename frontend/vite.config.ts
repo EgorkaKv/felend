@@ -19,4 +19,12 @@ export default defineConfig({
       '@/constants': path.resolve(__dirname, './src/constants'),
     },
   },
+  server: {
+    host: true,
+    hmr: {
+      host: '3ea2e94601b7.ngrok-free.app',
+      clientPort: 443,
+      protocol: 'wss'
+    }
+  }
 })

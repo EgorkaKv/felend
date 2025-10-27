@@ -7,7 +7,7 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
-  confirmationToken: string | null; // Для процесса верификации email
+  verificationToken: string | null; // Для процесса верификации email
 }
 
 const initialState: AuthState = {
@@ -15,7 +15,7 @@ const initialState: AuthState = {
   accessToken: null,
   refreshToken: null,
   isAuthenticated: false,
-  confirmationToken: null,
+  verificationToken: null,
 };
 
 const authSlice = createSlice({
@@ -30,8 +30,8 @@ const authSlice = createSlice({
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
     },
-    setConfirmationToken: (state, action: PayloadAction<string>) => {
-      state.confirmationToken = action.payload;
+    setVerificationToken: (state, action: PayloadAction<string>) => {
+      state.verificationToken = action.payload;
     },
     updateUserBalance: (state, action: PayloadAction<number>) => {
       if (state.user) {
@@ -43,10 +43,10 @@ const authSlice = createSlice({
       state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
-      state.confirmationToken = null;
+      state.verificationToken = null;
     },
   },
 });
 
-export const { setTokens, setUser, setConfirmationToken, updateUserBalance, logout } = authSlice.actions;
+export const { setTokens, setUser, setVerificationToken, updateUserBalance, logout } = authSlice.actions;
 export default authSlice.reducer;
