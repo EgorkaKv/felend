@@ -1,4 +1,5 @@
-import { Badge, IconButton } from '@mui/material';
+import Badge from '@mui/material/Badge';
+import IconButton from '@mui/material/IconButton';
 import { FilterList as FilterIcon } from '@mui/icons-material';
 
 interface FilterButtonProps {

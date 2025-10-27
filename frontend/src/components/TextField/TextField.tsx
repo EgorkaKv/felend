@@ -1,5 +1,7 @@
-import { TextField as MuiTextField, InputAdornment, IconButton } from '@mui/material';
-import type { TextFieldProps as MuiTextFieldProps } from '@mui/material';
+import { default as MuiTextField } from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import type { TextFieldProps as MuiTextFieldProps } from '@mui/material/TextField';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useState } from 'react';
 import { Controller } from 'react-hook-form';

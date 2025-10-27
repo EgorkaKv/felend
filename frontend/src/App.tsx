@@ -1,26 +1,29 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from '@/components/PublicRoute';
 import Snackbar from '@/components/Snackbar';
 import MainLayout from '@/components/Layout';
 import DevTools from '@/components/DevTools';
+import Loader from '@/components/Loader';
 
-// Pages
-import WelcomeScreen from '@/pages/WelcomeScreen';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
-import ConfirmEmailPage from '@/pages/ConfirmEmailPage';
-import HomeFeed from '@/pages/HomeFeed';
-import SurveyCompletionPage from '@/pages/SurveyCompletionPage';
-import AddSurveyPage from '@/pages/AddSurveyPage';
-import MySurveysPage from '@/pages/MySurveysPage';
-import HistoryPage from '@/pages/HistoryPage';
-import ProfilePage from '@/pages/ProfilePage';
+// Lazy load pages for code splitting
+const WelcomeScreen = lazy(() => import('@/pages/WelcomeScreen'));
+const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
+const ConfirmEmailPage = lazy(() => import('@/pages/ConfirmEmailPage'));
+const HomeFeed = lazy(() => import('@/pages/HomeFeed'));
+const SurveyCompletionPage = lazy(() => import('@/pages/SurveyCompletionPage'));
+const AddSurveyPage = lazy(() => import('@/pages/AddSurveyPage'));
+const MySurveysPage = lazy(() => import('@/pages/MySurveysPage'));
+const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 
 function App() {
   return (
     <>
-      <Routes>
+      <Suspense fallback={<Loader />}>
+        <Routes>
         {/* Публичные маршруты (без Layout) */}
         <Route
           path="/welcome"
@@ -66,7 +69,8 @@ function App() {
 
         {/* Fallback - redirect на главную */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </Suspense>
 
       {/* Global Snackbar */}
       <Snackbar />

@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
-import {
-  Box,
-  Typography,
-  Tabs,
-  Tab,
-  Button,
-  IconButton,
-  Menu,
-  MenuItem,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import { default as MuiButton } from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Alert from '@mui/material/Alert';
+import CircularProgress from '@mui/material/CircularProgress';
 import { Add as AddIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 
@@ -20,6 +18,7 @@ import SurveyCard from '@/components/SurveyCard';
 import EmptyState from '@/components/EmptyState';
 import { getMySurveys, updateSurveyStatus, deleteSurvey } from '@/api/surveys';
 import { showSnackbar } from '@/store/uiSlice';
+import { getErrorMessage } from '@/utils/errorHandler';
 import type { Survey } from '@/types';
 
 type SurveyStatus = 'active' | 'paused' | 'completed';
@@ -66,10 +65,11 @@ function MySurveysPage() {
           severity: 'success',
         })
       );
-    } catch {
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
       dispatch(
         showSnackbar({
-          message: 'Ошибка изменения статуса',
+          message: errorMessage,
           severity: 'error',
         })
       );
@@ -95,10 +95,11 @@ function MySurveysPage() {
           severity: 'success',
         })
       );
-    } catch {
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
       dispatch(
         showSnackbar({
-          message: 'Ошибка удаления опроса',
+          message: errorMessage,
           severity: 'error',
         })
       );
@@ -130,13 +131,13 @@ function MySurveysPage() {
         <Typography variant="h5" fontWeight="bold">
           Мои опросы
         </Typography>
-        <Button
+        <MuiButton
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => navigate('/add-survey')}
         >
           Создать
-        </Button>
+        </MuiButton>
       </Box>
 
       {/* Tabs */}

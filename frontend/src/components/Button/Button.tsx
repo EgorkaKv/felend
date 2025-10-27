@@ -1,5 +1,6 @@
-import { Button as MuiButton, CircularProgress } from '@mui/material';
-import type { ButtonProps as MuiButtonProps } from '@mui/material';
+import { default as MuiButton } from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import type { ButtonProps as MuiButtonProps } from '@mui/material/Button';
 
 interface ButtonProps extends Omit<MuiButtonProps, 'variant'> {
   variant?: 'primary' | 'outlined' | 'text';

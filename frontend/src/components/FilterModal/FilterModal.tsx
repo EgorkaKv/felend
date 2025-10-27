@@ -1,20 +1,18 @@
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Slider,
-  Typography,
-  Box,
-  Switch,
-  useMediaQuery,
-  useTheme,
-  Drawer,
-} from '@mui/material';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
+import Slider from '@mui/material/Slider';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Switch from '@mui/material/Switch';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
+import Drawer from '@mui/material/Drawer';
 import Button from '@/components/Button';
 import type { SurveyFilters, Category } from '@/types';
 

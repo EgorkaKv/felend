@@ -4,27 +4,25 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import useSWR from 'swr';
-import {
-  Box,
-  Typography,
-  Tabs,
-  Tab,
-  Button,
-  CircularProgress,
-  Alert,
-  TextField as MuiTextField,
-  MenuItem,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import { default as MuiButton } from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import { default as MuiTextField } from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import Divider from '@mui/material/Divider';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import {
   Delete as DeleteIcon,
   Add as AddIcon,
@@ -35,6 +33,7 @@ import { logout } from '@/store/authSlice';
 import { showSnackbar } from '@/store/uiSlice';
 import { getCurrentUser, updateUser } from '@/api/users';
 import { getGoogleAccounts, disconnectGoogleAccount } from '@/api/googleAccounts';
+import { getErrorMessage } from '@/utils/errorHandler';
 import type { RootState } from '@/store';
 import type { UpdateUserRequest, GoogleAccount } from '@/types';
 
@@ -96,8 +95,9 @@ function ProfilePage() {
       await updateUser(updateData);
       mutateUser();
       dispatch(showSnackbar({ message: 'Профиль обновлен', severity: 'success' }));
-    } catch {
-      dispatch(showSnackbar({ message: 'Ошибка обновления профиля', severity: 'error' }));
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
     } finally {
       setSaving(false);
     }
@@ -126,8 +126,9 @@ function ProfilePage() {
       await disconnectGoogleAccount(accountId);
       mutateGoogle();
       dispatch(showSnackbar({ message: 'Google аккаунт отключен', severity: 'success' }));
-    } catch {
-      dispatch(showSnackbar({ message: 'Ошибка отключения аккаунта', severity: 'error' }));
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
     }
   };
 
@@ -211,22 +212,22 @@ function ProfilePage() {
             />
 
             <Box display="flex" gap={2} mt={2}>
-              <Button
+              <MuiButton
                 type="submit"
                 variant="contained"
                 disabled={saving}
                 fullWidth
               >
                 {saving ? <CircularProgress size={24} /> : 'Сохранить'}
-              </Button>
-              <Button
+              </MuiButton>
+              <MuiButton
                 variant="outlined"
                 color="error"
                 onClick={handleLogout}
                 fullWidth
               >
                 Выйти
-              </Button>
+              </MuiButton>
             </Box>
           </Box>
         </Box>
@@ -241,14 +242,14 @@ function ProfilePage() {
             </Alert>
           </Box>
 
-          <Button
+          <MuiButton
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setConnectDialogOpen(true)}
             sx={{ mb: 2 }}
           >
             Подключить аккаунт
-          </Button>
+          </MuiButton>
 
           {googleAccounts.length === 0 ? (
             <Alert severity="warning">Нет подключенных Google аккаунтов</Alert>
@@ -303,10 +304,10 @@ function ProfilePage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConnectDialogOpen(false)}>Отмена</Button>
-          <Button onClick={handleConnectGoogle} variant="contained">
+          <MuiButton onClick={() => setConnectDialogOpen(false)}>Отмена</MuiButton>
+          <MuiButton onClick={handleConnectGoogle} variant="contained">
             Подключить
-          </Button>
+          </MuiButton>
         </DialogActions>
       </Dialog>
     </Box>

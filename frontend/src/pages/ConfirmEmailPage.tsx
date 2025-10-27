@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Alert } from '@mui/material';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
 import { Email as EmailIcon } from '@mui/icons-material';
 import Button from '@/components/Button';
 import PinInput from '@/components/PinInput';

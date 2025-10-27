@@ -1,4 +1,9 @@
-import { Card, CardContent, Typography, Box, Chip } from '@mui/material';
+import { memo } from 'react';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import {
   AccessTime as TimeIcon,
   CheckCircle as CheckIcon,
@@ -13,7 +18,7 @@ interface SurveyCardProps {
   loading?: boolean;
 }
 
-export const SurveyCard = ({ survey, onParticipate, loading = false }: SurveyCardProps) => {
+const SurveyCard = memo(({ survey, onParticipate, loading = false }: SurveyCardProps) => {
   const {
     id,
     title,
@@ -171,6 +176,9 @@ export const SurveyCard = ({ survey, onParticipate, loading = false }: SurveyCar
       </CardContent>
     </Card>
   );
-};
+});
 
+SurveyCard.displayName = 'SurveyCard';
+
+export { SurveyCard };
 export default SurveyCard;

@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
-import {
-  Container,
-  Box,
-  Typography,
-  Paper,
-  Alert,
-  Stepper,
-  Step,
-  StepLabel,
-} from '@mui/material';
+import Container from '@mui/material/Container';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import Alert from '@mui/material/Alert';
+import Stepper from '@mui/material/Stepper';
+import Step from '@mui/material/Step';
+import StepLabel from '@mui/material/StepLabel';
 import {
   OpenInNew as OpenIcon,
   CheckCircle as CheckIcon,

@@ -5,10 +5,20 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+// Структура ошибки API согласно документации /docs/api/README.md
 export interface ApiError {
-  error: string;
-  message: string;
-  details?: Record<string, string[]>;
+  message: string;      // Human-readable error message
+  code: string;         // ERROR_CODE (AUTH001, SURVEY001, etc.)
+  type: string;         // ExceptionType
+  details?: Record<string, unknown>;  // Additional context-specific information
+  timestamp?: string;   // ISO 8601 timestamp
+  path?: string;        // API endpoint path
+}
+
+// Обертка для ответа с ошибкой
+export interface ApiErrorResponse {
+  error: ApiError;
+  detail?: string;      // Legacy format fallback
 }
 
 export interface PaginatedResponse<T> {

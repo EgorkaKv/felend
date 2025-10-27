@@ -1,4 +1,5 @@
-import { Snackbar as MuiSnackbar, Alert } from '@mui/material';
+import { default as MuiSnackbar } from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { hideSnackbar } from '@/store/uiSlice';
 

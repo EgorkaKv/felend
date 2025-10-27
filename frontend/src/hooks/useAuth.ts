@@ -5,31 +5,7 @@ import { showSnackbar } from '@/store/uiSlice';
 import * as authApi from '@/api/auth';
 import * as usersApi from '@/api/users';
 import type { LoginRequest, RegisterRequest, VerifyEmailRequest } from '@/types';
-
-// Хелпер для извлечения сообщения об ошибке
-const getErrorMessage = (error: unknown, defaultMessage: string): string => {
-  if (error && typeof error === 'object' && 'response' in error) {
-    const response = (error as { response?: { data?: { message?: string; detail?: string } } }).response;
-    
-    // В dev mode логируем полную ошибку
-    if (import.meta.env.DEV) {
-      console.error('%c[AUTH ERROR DETAILS]', 'color: #FF6B6B; font-weight: bold', {
-        status: (error as { response?: { status?: number } }).response?.status,
-        data: response?.data,
-        message: response?.data?.message,
-        detail: response?.data?.detail,
-      });
-    }
-    
-    return response?.data?.message || response?.data?.detail || defaultMessage;
-  }
-  
-  if (import.meta.env.DEV) {
-    console.error('%c[AUTH UNKNOWN ERROR]', 'color: #FF6B6B; font-weight: bold', error);
-  }
-  
-  return defaultMessage;
-};
+import { getErrorMessage, logError } from '@/utils/errorHandler';
 
 export const useAuth = () => {
   const dispatch = useAppDispatch();
@@ -79,14 +55,8 @@ export const useAuth = () => {
       
       return response;
     } catch (error) {
-      const errorMessage = getErrorMessage(error, 'Ошибка регистрации');
-      
-      if (import.meta.env.DEV) {
-        console.error('%c[useAuth] Register failed', 'color: #FF6B6B; font-weight: bold', {
-          errorMessage,
-          error,
-        });
-      }
+      const errorMessage = getErrorMessage(error);
+      logError('Register', error);
       
       dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
       throw error;
@@ -140,14 +110,8 @@ export const useAuth = () => {
       
       return response;
     } catch (error) {
-      const errorMessage = getErrorMessage(error, 'Ошибка входа');
-      
-      if (import.meta.env.DEV) {
-        console.error('%c[useAuth] Login failed', 'color: #FF6B6B; font-weight: bold', {
-          errorMessage,
-          error,
-        });
-      }
+      const errorMessage = getErrorMessage(error);
+      logError('Login', error);
       
       dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
       throw error;
@@ -183,7 +147,8 @@ export const useAuth = () => {
       
       return response;
     } catch (error) {
-      const errorMessage = getErrorMessage(error, 'Неверный код');
+      const errorMessage = getErrorMessage(error);
+      logError('VerifyEmail', error);
       dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
       throw error;
     }

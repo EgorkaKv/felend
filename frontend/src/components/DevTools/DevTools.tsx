@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { Box, Typography, IconButton, Collapse, Paper, Chip } from '@mui/material';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import Collapse from '@mui/material/Collapse';
+import Paper from '@mui/material/Paper';
+import Chip from '@mui/material/Chip';
 import { BugReport, Close, ExpandMore, ExpandLess } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';

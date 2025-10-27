@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import type { KeyboardEvent, ClipboardEvent } from 'react';
-import { Box, TextField } from '@mui/material';
+import Box from '@mui/material/Box';
+import { default as MuiTextField } from '@mui/material/TextField';
 
 interface PinInputProps {
   length?: number;
@@ -83,7 +84,7 @@ export const PinInput = ({
       }}
     >
       {Array.from({ length }).map((_, index) => (
-        <TextField
+        <MuiTextField
           key={index}
           inputRef={(el) => {
             inputRefs.current[index] = el;

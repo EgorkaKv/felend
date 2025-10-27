@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
-import { Container, Box, Stack, Alert } from '@mui/material';
+import Container from '@mui/material/Container';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import SearchBar from '@/components/SearchBar';
 import FilterButton from '@/components/FilterButton';
 import FilterModal from '@/components/FilterModal';

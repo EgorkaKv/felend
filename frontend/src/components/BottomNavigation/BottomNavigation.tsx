@@ -1,9 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  BottomNavigation as MuiBottomNavigation,
-  BottomNavigationAction,
-  Paper,
-} from '@mui/material';
+import { default as MuiBottomNavigation } from '@mui/material/BottomNavigation';
+import BottomNavigationAction from '@mui/material/BottomNavigationAction';
+import Paper from '@mui/material/Paper';
 import {
   Home as HomeIcon,
   Assignment as AssignmentIcon,

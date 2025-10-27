@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { TextField, InputAdornment, IconButton } from '@mui/material';
+import { default as MuiTextField } from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
 import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 
 interface SearchBarProps {
@@ -37,7 +39,7 @@ export const SearchBar = ({
   };
 
   return (
-    <TextField
+    <MuiTextField
       fullWidth
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}

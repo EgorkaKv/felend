@@ -4,20 +4,18 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import useSWR from 'swr';
-import {
-  Container,
-  Box,
-  Typography,
-  Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  Divider,
-  Chip,
-  Alert,
-} from '@mui/material';
+import Container from '@mui/material/Container';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormHelperText from '@mui/material/FormHelperText';
+import Divider from '@mui/material/Divider';
+import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import { Add as AddIcon } from '@mui/icons-material';
 import Button from '@/components/Button';
 import TextField from '@/components/TextField';
@@ -26,6 +24,7 @@ import { getGoogleAccounts } from '@/api/googleAccounts';
 import { getCategories } from '@/api/categories';
 import { useAppDispatch } from '@/store/hooks';
 import { showSnackbar } from '@/store/uiSlice';
+import { getErrorMessage } from '@/utils/errorHandler';
 import type { CreateSurveyRequest, GoogleAccount, Category } from '@/types';
 
 // Валидационная схема
@@ -138,12 +137,7 @@ const AddSurveyPage = () => {
 
       navigate('/my-surveys');
     } catch (error) {
-      const errorMessage =
-        error && typeof error === 'object' && 'response' in error
-          ? ((error as { response?: { data?: { message?: string } } }).response?.data
-              ?.message as string)
-          : 'Не удалось создать опрос';
-
+      const errorMessage = getErrorMessage(error);
       dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
     } finally {
       setLoading(false);

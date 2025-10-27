@@ -1,5 +1,6 @@
-import { CircularProgress, Box } from '@mui/material';
-import type { CircularProgressProps } from '@mui/material';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
+import type { CircularProgressProps } from '@mui/material/CircularProgress';
 
 interface SpinnerProps extends CircularProgressProps {
   inline?: boolean;
