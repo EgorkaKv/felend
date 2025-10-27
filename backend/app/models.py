@@ -19,9 +19,10 @@ class SurveyStatus(enum.Enum):
     COMPLETED = "completed"   # завершен
 
 
-class VerificationType(enum.Enum):
-    EMAIL_VERIFICATION = "email_verification"  # верификация email при регистрации
-    PASSWORD_RESET = "password_reset"          # сброс пароля
+class VerificationType(str, enum.Enum):
+    """Тип верификации - используем str для правильной сериализации"""
+    email_verification = "email_verification"  # верификация email при регистрации
+    password_reset = "password_reset"          # сброс пароля
 
 
 class User(Base):
@@ -165,15 +166,15 @@ class BalanceTransaction(Base):
 
 
 class EmailVerification(Base):
-    """Модель для хранения токенов и кодов верификации email"""
+    """Модель для хранения токенов и кодов верификации email + временное хранение данных пользователя"""
     __tablename__ = "email_verifications"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)  # Nullable для новых регистраций
     verification_type: Mapped[VerificationType] = mapped_column(
         SQLEnum(VerificationType), 
         nullable=False, 
-        default=VerificationType.EMAIL_VERIFICATION
+        default=VerificationType.email_verification
     )
     verification_token: Mapped[str] = mapped_column(String(36), unique=True, index=True, nullable=False)  # UUID4
     verification_code: Mapped[Optional[str]] = mapped_column(String(6), nullable=True)  # 6-значный код
@@ -182,8 +183,14 @@ class EmailVerification(Base):
     is_used: Mapped[bool] = mapped_column(Boolean, default=False)  # был ли использован для успешной верификации
     attempts: Mapped[int] = mapped_column(Integer, default=0)  # количество неудачных попыток ввода кода
     last_code_sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)  # для rate limiting
+    
+    # Временные данные пользователя (для email_verification типа)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)  # Email пользователя
+    hashed_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Хэшированный пароль
+    full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # Полное имя
+    
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
-    # Связь с пользователем
+    # Связь с пользователем (опциональная)
     user = relationship("User")

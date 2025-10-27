@@ -63,10 +63,12 @@ class EmailVerificationService:
         ):
             raise VerificationRateLimitException(self.RATE_LIMIT_SECONDS)
         
-        # Получить пользователя
-        user = self.user_repo.get(self.db, verification.user_id)
-        if not user:
-            raise UserNotFoundException(user_id=verification.user_id)
+        # Для atomic registration: user может не существовать, используем email из verification
+        # verification.email содержит email, который будет использован для создания user после verify_email
+        email = verification.email
+
+        if not email:
+            raise UserNotFoundException()
         
         # Сгенерировать новый код
         code = self.verification_repo.generate_verification_code(
@@ -76,17 +78,17 @@ class EmailVerificationService:
         )
         
         # Отправить код на email
-        email_sent = self.email_service.send_verification_code(user.email, code)
+        email_sent = self.email_service.send_verification_code(email, code)
         
         if not email_sent:
-            logger.error(f"Failed to send verification email to {user.email}")
+            logger.error(f"Failed to send verification email to {email}")
             # В production можно выбросить исключение
             # raise EmailSendFailedException()
         
         # Маскировать email для ответа
-        masked_email = self.email_service.mask_email(user.email)
+        masked_email = self.email_service.mask_email(email)
         
-        logger.info(f"Verification code sent to user {user.id} ({masked_email})")
+        logger.info(f"Verification code sent for email {masked_email}")
         
         return (
             f"Verification code sent to {masked_email}. Code valid for 15 minutes.",
@@ -95,7 +97,10 @@ class EmailVerificationService:
     
     def verify_email(self, verification_token: str, code: str) -> Tuple[str, str, dict]:
         """
-        Проверить код и активировать аккаунт
+        Проверить код и создать пользователя
+        
+        Теперь пользователь создаётся ТОЛЬКО после успешной верификации email.
+        Данные берутся из записи email_verifications.
         
         Returns:
             Tuple[access_token, refresh_token, user_dict]
@@ -134,17 +139,34 @@ class EmailVerificationService:
             
             raise InvalidVerificationCodeException(attempts_left)
         
-        # Код правильный! Активировать пользователя
-        user = self.user_repo.get(self.db, verification.user_id)
-        if not user:
-            raise UserNotFoundException(user_id=verification.user_id)
+        # Код правильный! Проверим что это email_verification (не password_reset)
+        if not verification.email or not verification.hashed_password or not verification.full_name:
+            raise VerificationTokenInvalidException("Invalid verification data")
         
-        # Активировать пользователя
-        user.is_active = True
+        # Создать пользователя из данных верификации
+        from app.models import User
+        import secrets
+        from app.core.security import generate_respondent_code
         
-        # Добавить приветственный бонус
-        user.balance += settings.WELCOME_BONUS_POINTS
+        # Генерируем временный код респондента
+        temp_respondent_code = f"TEMP_{secrets.token_hex(8)}"[:16]
         
+        user = User(
+            email=verification.email,
+            full_name=verification.full_name,
+            hashed_password=verification.hashed_password,
+            balance=settings.WELCOME_BONUS_POINTS,  # Приветственный бонус сразу
+            respondent_code=temp_respondent_code,
+            is_active=True  # Активен сразу после верификации
+        )
+        
+        self.db.add(user)
+        self.db.flush()  # Получаем ID без коммита
+        
+        # Обновляем код респондента на основе реального ID
+        user.respondent_code = generate_respondent_code(user.id)
+        
+        # Добавить приветственную транзакцию
         welcome_transaction = BalanceTransaction(
             user_id=user.id,
             transaction_type=TransactionType.BONUS,
@@ -157,14 +179,14 @@ class EmailVerificationService:
         self.db.commit()
         self.db.refresh(user)
         
-        # Пометить верификацию как использованную
-        self.verification_repo.mark_as_used(self.db, verification.id)
+        # Удалить запись верификации (больше не нужна)
+        self.verification_repo.delete_verification(self.db, verification.id)
         
         # Создать токены для входа
         access_token = create_access_token(data={"sub": str(user.id)})
         refresh_token = create_refresh_token(data={"sub": str(user.id)})
         
-        logger.info(f"User {user.id} ({user.email}) successfully verified email and activated account")
+        logger.info(f"User {user.id} ({user.email}) successfully verified email and created account")
         
         # Вернуть данные пользователя
         user_dict = {

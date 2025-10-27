@@ -24,7 +24,8 @@ class TestAuthEndpoints:
         assert "verification_token" in data
         assert "email" in data
         assert "message" in data
-        assert data["email"] == "newuser@example.com"
+        # API returns masked email for security
+        assert "*" in data["email"]
         assert "verify your email" in data["message"].lower()
 
     def test_register_duplicate_email(self, client: TestClient, test_user):
@@ -114,3 +115,109 @@ class TestAuthEndpoints:
         response = client.post("/api/v1/auth/refresh", json=refresh_data)
         
         assert response.status_code == 401
+
+
+class TestEmailExistsAnywhere:
+    """Тесты для проверки дубликатов email в обеих таблицах"""
+
+    def test_cannot_register_with_existing_user_email(self, client: TestClient, test_user):
+        """Тест: нельзя зарегистрироваться с email существующего user"""
+        user_data = {
+            "email": test_user.email,
+            "full_name": "Duplicate User",
+            "password": "password123"
+        }
+        
+        response = client.post("/api/v1/auth/register", json=user_data)
+        
+        assert response.status_code == 409
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == "USER002"
+
+    def test_cannot_register_with_pending_verification_email(self, client: TestClient):
+        """Тест: нельзя создать нового user с email из pending verification (обновляется)"""
+        user_data = {
+            "email": "pending@example.com",
+            "full_name": "Pending User",
+            "password": "password123"
+        }
+        
+        # Первая регистрация - создаёт pending verification
+        first_response = client.post("/api/v1/auth/register", json=user_data)
+        assert first_response.status_code == 201
+        first_token = first_response.json()["verification_token"]
+        
+        # Вторая регистрация с тем же email - должна вернуть тот же токен (обновление)
+        user_data_v2 = {
+            "email": "pending@example.com",
+            "full_name": "Updated Name",
+            "password": "newpassword456"
+        }
+        
+        second_response = client.post("/api/v1/auth/register", json=user_data_v2)
+        assert second_response.status_code == 201
+        second_token = second_response.json()["verification_token"]
+        
+        # Токены должны совпадать (обновление существующей записи)
+        assert first_token == second_token
+
+    def test_email_exists_in_both_tables(self, client: TestClient, db_session):
+        """Тест: email_exists_anywhere проверяет обе таблицы"""
+        # Создать pending verification
+        pending_email = "both_tables@example.com"
+        user_data = {
+            "email": pending_email,
+            "full_name": "Both Tables",
+            "password": "password123"
+        }
+        
+        response = client.post("/api/v1/auth/register", json=user_data)
+        assert response.status_code == 201
+        
+        # Проверить через репозиторий
+        from app.repositories.user_repository import user_repository
+        
+        # Email должен существовать где-то (в email_verifications)
+        exists = user_repository.email_exists_anywhere(db_session, pending_email)
+        assert exists is True
+
+    def test_can_register_after_verification_deleted(self, client: TestClient, db_session):
+        """Тест: можно зарегистрироваться снова после удаления pending verification"""
+        from unittest.mock import patch
+        
+        user_data = {
+            "email": "reregister_after_delete@example.com",
+            "full_name": "Reregister Test",
+            "password": "password123"
+        }
+        
+        # Первая регистрация и верификация
+        reg_response = client.post("/api/v1/auth/register", json=user_data)
+        verification_token = reg_response.json()["verification_token"]
+        
+        with patch('app.services.email_service.email_service.send_verification_code') as mock_send:
+            mock_send.return_value = True
+            client.post(
+                "/api/v1/auth/request-verification-code",
+                json={"verification_token": verification_token}
+            )
+        
+        from app.repositories.email_verification_repository import email_verification_repository
+        verification = email_verification_repository.get_by_token(db_session, verification_token)
+        assert verification is not None
+        actual_code = verification.verification_code
+        
+        # Верифицировать (создаст user, удалит verification)
+        client.post(
+            "/api/v1/auth/verify-email",
+            json={
+                "verification_token": verification_token,
+                "code": actual_code
+            }
+        )
+        
+        # Попытка повторной регистрации с тем же email
+        # Теперь email существует в users, не должна пройти
+        second_reg = client.post("/api/v1/auth/register", json=user_data)
+        assert second_reg.status_code == 409

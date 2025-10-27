@@ -1,7 +1,7 @@
 from typing import Optional
 from sqlalchemy.orm import Session
 import secrets
-from app.models import User
+from app.models import User, EmailVerification, VerificationType
 from app.repositories.base_repository import BaseRepository
 from app.schemas import UserRegister, UserUpdate
 from app.core.security import get_password_hash, generate_respondent_code
@@ -64,6 +64,26 @@ class UserRepository(BaseRepository[User, UserRegister, UserUpdate]):
         if exclude_id:
             query = query.filter(User.id != exclude_id)
         return query.first() is not None
+    
+    def email_exists_anywhere(self, db: Session, email: str) -> bool:
+        """
+        Проверить существование email в users или в pending registrations (email_verifications)
+        
+        Returns:
+            True если email уже используется где-то
+        """
+        # Проверка в users
+        if self.email_exists(db, email):
+            return True
+        
+        # Проверка в email_verifications (pending registrations)
+        pending = db.query(EmailVerification).filter(
+            EmailVerification.email == email,
+            EmailVerification.verification_type == VerificationType.email_verification,
+            EmailVerification.is_used == False
+        ).first()
+        
+        return pending is not None
 
 
 # Создаем экземпляр репозитория

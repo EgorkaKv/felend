@@ -18,10 +18,13 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 import os
 import sys
-from dotenv import load_dotenv
 
 # Добавляем путь к приложению
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+
+# Загружаем .env ПЕРЕД импортом app.models (чтобы settings мог загрузиться)
+from dotenv import load_dotenv
+load_dotenv()
 
 from app.models import Base
 target_metadata = Base.metadata
@@ -63,11 +66,10 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # Загружаем переменные окружения
-    load_dotenv()
+    # Получаем URL из settings (он уже загрузил .env)
+    from app.core.config import settings
+    database_url = settings.get_database_url
     
-    # Получаем URL из переменных окружения
-    database_url = os.getenv("DATABASE_URL")
     if database_url:
         config.set_main_option("sqlalchemy.url", database_url)
     

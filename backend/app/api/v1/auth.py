@@ -29,10 +29,10 @@ async def register(user_data: UserRegister, auth_service=Depends(get_auth_servic
     """
     Register a new user
     
-    Creates an inactive user account and returns a verification token.
-    User must verify their email to activate the account.
+    Creates a pending registration (data stored temporarily in email_verifications table).
+    User must verify their email to complete registration and create the account.
     """
-    user, verification_token = auth_service.register_user(
+    verification_token, masked_email = auth_service.register_user(
         email=user_data.email,
         password=user_data.password,
         full_name=user_data.full_name,
@@ -40,8 +40,8 @@ async def register(user_data: UserRegister, auth_service=Depends(get_auth_servic
     
     return RegisterResponse(
         verification_token=verification_token,
-        email=user.email,
-        message="Registration successful. Please verify your email to activate your account."
+        email=masked_email,
+        message="Registration initiated. Please verify your email to complete registration."
     )
 
 

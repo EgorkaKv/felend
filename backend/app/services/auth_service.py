@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models import User, BalanceTransaction, TransactionType
 from app.repositories.user_repository import user_repository
 from app.repositories.email_verification_repository import email_verification_repository
-from app.core.security import verify_password, create_access_token, create_refresh_token, verify_token
+from app.core.security import verify_password, create_access_token, create_refresh_token, verify_token, get_password_hash
 from app.core.exceptions import (
     InvalidTokenException,
     UserAlreadyExistsException, 
@@ -22,41 +22,51 @@ class AuthService:
         self.verification_repo = email_verification_repository
         self.db = db
 
-    def register_user(self, email: str, password: str, full_name: str) -> Tuple[User, str]:
+    def register_user(self, email: str, password: str, full_name: str) -> Tuple[str, str]:
         """
         Регистрация нового пользователя
         
-        Returns:
-            Tuple[User, verification_token] - пользователь и токен верификации
-        """
-        if self.user_repo.email_exists(self.db, email):
-            raise UserAlreadyExistsException(email)
+        Теперь данные пользователя сохраняются только в email_verifications
+        до подтверждения email. Пользователь создаётся только после верификации.
         
-        # Создаем НЕАКТИВНОГО пользователя
-        user = self.user_repo.create_user(
+        Returns:
+            Tuple[verification_token, masked_email] - токен верификации и маскированный email
+        """
+        from app.services.email_service import email_service
+        
+        # Проверяем существование email в обеих таблицах
+        if self.user_repo.email_exists_anywhere(self.db, email):
+            # Проверяем, может быть это pending registration
+            existing_verification = self.verification_repo.get_active_by_email(self.db, email)
+            
+            if existing_verification:
+                # Обновляем существующую pending registration
+                hashed_password = get_password_hash(password)
+                self.verification_repo.update_user_data(
+                    self.db,
+                    existing_verification.id,
+                    email,
+                    hashed_password,
+                    full_name
+                )
+                return existing_verification.verification_token, email_service.mask_email(email)
+            else:
+                # Email уже зарегистрирован и подтверждён
+                raise UserAlreadyExistsException(email)
+        
+        # Хешируем пароль
+        hashed_password = get_password_hash(password)
+        
+        # Создаем запись верификации с данными пользователя
+        verification = self.verification_repo.create_with_user_data(
             db=self.db,
             email=email,
+            hashed_password=hashed_password,
             full_name=full_name,
-            password=password
-        )
-        
-        # Делаем пользователя неактивным до верификации email
-        user.is_active = False
-        user.balance = 0  # Обнуляем баланс, бонус будет после верификации
-        self.db.commit()
-        self.db.refresh(user)
-        
-        # НЕ начисляем приветственный бонус сразу - он будет начислен после верификации
-        # Это мотивирует пользователей подтвердить email
-        
-        # Создаем запись верификации с токеном
-        verification = self.verification_repo.create_verification(
-            db=self.db,
-            user_id=user.id,
             token_validity_hours=24
         )
         
-        return user, verification.verification_token
+        return verification.verification_token, email_service.mask_email(email)
 
     def authenticate_user(self, email: str, password: str) -> User:
         user = self.user_repo.get_by_email(self.db, email)
