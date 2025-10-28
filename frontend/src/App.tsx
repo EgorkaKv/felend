@@ -12,6 +12,7 @@ const WelcomeScreen = lazy(() => import('@/pages/WelcomeScreen'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
 const ConfirmEmailPage = lazy(() => import('@/pages/ConfirmEmailPage'));
+const GoogleCallbackPage = lazy(() => import('@/pages/GoogleCallbackPage'));
 const HomeFeed = lazy(() => import('@/pages/HomeFeed'));
 const SurveyCompletionPage = lazy(() => import('@/pages/SurveyCompletionPage'));
 const AddSurveyPage = lazy(() => import('@/pages/AddSurveyPage'));
@@ -50,6 +51,7 @@ function App() {
           }
         />
         <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+        <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
 
         {/* Защищенные маршруты с Layout */}
         <Route

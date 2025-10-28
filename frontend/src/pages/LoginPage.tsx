@@ -34,7 +34,7 @@ type LoginFormData = {
 };
 
 const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -82,9 +82,15 @@ const LoginPage = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    // Редирект на бэкенд для Google OAuth
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google/login`;
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      // Ошибки обрабатываются в useAuth hook
+      if (import.meta.env.DEV) {
+        console.error('%c[GOOGLE LOGIN ERROR]', 'color: #FF6B6B; font-weight: bold', error);
+      }
+    }
   };
 
   return (

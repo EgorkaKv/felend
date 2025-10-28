@@ -3,7 +3,7 @@ import type { GoogleAccount, ConnectGoogleAccountRequest } from '@/types';
 
 // Получить список Google аккаунтов
 export const getGoogleAccounts = async () => {
-  const response = await apiClient.get<{ accounts: GoogleAccount[] }>('/google-accounts');
+  const response = await apiClient.get<{ google_accounts: GoogleAccount[] }>('/google-accounts');
   return response.data;
 };
 

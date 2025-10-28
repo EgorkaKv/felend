@@ -46,3 +46,24 @@ export const refreshTokens = async (refreshToken: string) => {
   });
   return response.data;
 };
+
+// Google OAuth: инициация входа
+export const initiateGoogleLogin = async (frontendRedirectUri: string) => {
+  const response = await apiClient.post<{ 
+    authorization_url: string;
+    message: string;
+  }>(
+    '/auth/google/login',
+    { frontend_redirect_uri: frontendRedirectUri }
+  );
+  return response.data;
+};
+
+// Google OAuth: обмен одноразового токена на JWT
+export const exchangeGoogleToken = async (token: string) => {
+  const response = await apiClient.post<TokenResponse>(
+    '/auth/google/exchange-token',
+    { token }
+  );
+  return response.data;
+};

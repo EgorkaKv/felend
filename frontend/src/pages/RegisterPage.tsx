@@ -44,7 +44,7 @@ type RegisterFormData = {
 };
 
 const RegisterPage = () => {
-  const { register: registerUser } = useAuth();
+  const { register: registerUser, loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -92,9 +92,15 @@ const RegisterPage = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    // Редирект на бэкенд для Google OAuth
-    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google/login`;
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      // Ошибки обрабатываются в useAuth hook
+      if (import.meta.env.DEV) {
+        console.error('%c[GOOGLE REGISTER ERROR]', 'color: #FF6B6B; font-weight: bold', error);
+      }
+    }
   };
 
   return (

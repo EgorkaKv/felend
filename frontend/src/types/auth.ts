@@ -15,6 +15,15 @@ export interface TokenResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  expires_in: number;
+  user: {
+    id: number;
+    email: string;
+    full_name: string;
+    balance: number;
+    respondent_code: string;
+    created_at: string;
+  };
 }
 
 export interface VerificationRequest {

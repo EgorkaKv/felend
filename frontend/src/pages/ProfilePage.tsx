@@ -63,7 +63,7 @@ function ProfilePage() {
   const { data: userData, mutate: mutateUser } = useSWR('/users/me', getCurrentUser);
   const { data: googleData, mutate: mutateGoogle } = useSWR('/google-accounts', getGoogleAccounts);
 
-  const googleAccounts = googleData?.accounts || [];
+  const googleAccounts = googleData?.google_accounts || [];
 
   const {
     register,

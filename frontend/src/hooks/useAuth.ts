@@ -161,10 +161,44 @@ export const useAuth = () => {
     navigate('/login');
   };
 
+  // Вход через Google
+  const loginWithGoogle = async () => {
+    try {
+      if (import.meta.env.DEV) {
+        console.log('%c[useAuth] Google login initiated', 'color: #4D96FF; font-weight: bold');
+      }
+
+      // Формируем URL для callback
+      const callbackUrl = `${window.location.origin}/auth/google/callback`;
+      
+      if (import.meta.env.DEV) {
+        console.log('%c[useAuth] Callback URL:', 'color: #4D96FF', callbackUrl);
+      }
+
+      // Получаем authorization URL от бэкенда
+      const response = await authApi.initiateGoogleLogin(callbackUrl);
+      
+      if (import.meta.env.DEV) {
+        console.log('%c[useAuth] Authorization URL received', 'color: #6BCF7F; font-weight: bold', {
+          message: response.message,
+        });
+      }
+
+      // Редиректим пользователя на Google OAuth
+      window.location.href = response.authorization_url;
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      logError('GoogleLogin', error);
+      dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
+      throw error;
+    }
+  };
+
   return {
     register,
     login,
     verifyEmail,
     logout,
+    loginWithGoogle,
   };
 };

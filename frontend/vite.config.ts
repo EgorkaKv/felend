@@ -63,12 +63,4 @@ export default defineConfig({
     // Source maps только для debugging (отключаем в production)
     sourcemap: false,
   },
-  server: {
-    host: true,
-    hmr: {
-      host: '3ea2e94601b7.ngrok-free.app',
-      clientPort: 443,
-      protocol: 'wss'
-    }
-  }
 })
