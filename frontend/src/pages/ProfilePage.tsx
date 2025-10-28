@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -19,10 +19,6 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import IconButton from '@mui/material/IconButton';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
 import {
   Delete as DeleteIcon,
   Add as AddIcon,
@@ -32,8 +28,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/store/authSlice';
 import { showSnackbar } from '@/store/uiSlice';
 import { getCurrentUser, updateUser } from '@/api/users';
-import { getGoogleAccounts, disconnectGoogleAccount } from '@/api/googleAccounts';
+import { getGoogleAccounts, disconnectGoogleAccount, initiateGoogleAccountConnect } from '@/api/googleAccounts';
 import { getErrorMessage } from '@/utils/errorHandler';
+import { getGoogleAccountErrorMessage } from '@/constants/googleAccountErrors';
 import type { RootState } from '@/store';
 import type { UpdateUserRequest, GoogleAccount } from '@/types';
 
@@ -54,14 +51,14 @@ const profileSchema = yup.object().shape({
 function ProfilePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const user = useSelector((state: RootState) => state.auth.user);
   const [activeTab, setActiveTab] = useState(0);
-  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
   const [saving, setSaving] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   const { data: userData, mutate: mutateUser } = useSWR('/users/me', getCurrentUser);
-  const { data: googleData, mutate: mutateGoogle } = useSWR('/google-accounts', getGoogleAccounts);
+  const { data: googleData } = useSWR('/google-accounts', getGoogleAccounts);
 
   const googleAccounts = googleData?.google_accounts || [];
 
@@ -108,13 +105,22 @@ function ProfilePage() {
     navigate('/login');
   };
 
-  const handleConnectGoogle = () => {
-    // В реальном приложении здесь будет OAuth redirect
-    dispatch(showSnackbar({ 
-      message: 'OAuth интеграция с Google будет реализована на бэкенде', 
-      severity: 'info' 
-    }));
-    setConnectDialogOpen(false);
+  const handleConnectGoogle = async () => {
+    setConnecting(true);
+    try {
+      const redirectUri = `${window.location.origin}/profile`;
+      const response = await initiateGoogleAccountConnect(redirectUri);
+      
+      // Редиректим на Google OAuth
+      window.location.href = response.authorization_url;
+    } catch (error) {
+      setConnecting(false);
+      const errorMessage = getErrorMessage(error);
+      dispatch(showSnackbar({ 
+        message: `Ошибка подключения: ${errorMessage}`, 
+        severity: 'error' 
+      }));
+    }
   };
 
   const handleDisconnectGoogle = async (accountId: number) => {
@@ -124,13 +130,45 @@ function ProfilePage() {
 
     try {
       await disconnectGoogleAccount(accountId);
-      mutateGoogle();
       dispatch(showSnackbar({ message: 'Google аккаунт отключен', severity: 'success' }));
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       dispatch(showSnackbar({ message: errorMessage, severity: 'error' }));
     }
   };
+
+  // Обработка callback параметров после подключения Google аккаунта
+  useEffect(() => {
+    const googleConnected = searchParams.get('google_connected');
+    
+    if (googleConnected === 'success') {
+      const email = searchParams.get('email');
+      dispatch(showSnackbar({ 
+        message: email 
+          ? `Google аккаунт ${email} успешно подключен!` 
+          : 'Google аккаунт успешно подключен!',
+        severity: 'success'
+      }));
+      
+      // Очищаем параметры из URL
+      setSearchParams({});
+    } else if (googleConnected === 'error') {
+      const errorCode = searchParams.get('error_code');
+      const message = searchParams.get('message');
+      
+      const errorMessage = errorCode 
+        ? getGoogleAccountErrorMessage(errorCode, message || undefined)
+        : message || 'Не удалось подключить Google аккаунт';
+      
+      dispatch(showSnackbar({ 
+        message: errorMessage, 
+        severity: 'error' 
+      }));
+      
+      // Очищаем параметры из URL
+      setSearchParams({});
+    }
+  }, [searchParams, dispatch, setSearchParams]);
 
   if (!userData) {
     return (
@@ -245,10 +283,11 @@ function ProfilePage() {
           <MuiButton
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setConnectDialogOpen(true)}
+            onClick={handleConnectGoogle}
+            disabled={connecting}
             sx={{ mb: 2 }}
           >
-            Подключить аккаунт
+            {connecting ? 'Подключение...' : 'Подключить аккаунт'}
           </MuiButton>
 
           {googleAccounts.length === 0 ? (
@@ -268,7 +307,7 @@ function ProfilePage() {
                 >
                   <ListItemText
                     primary={account.email}
-                    secondary={`Добавлен ${new Date(account.connected_at).toLocaleDateString('ru-RU')}`}
+
                   />
                   <ListItemSecondaryAction>
                     <IconButton
@@ -285,31 +324,6 @@ function ProfilePage() {
           )}
         </Box>
       )}
-
-      {/* Connect Google Dialog */}
-      <Dialog open={connectDialogOpen} onClose={() => setConnectDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Подключить Google аккаунт</DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Введите email Google аккаунта, который вы будете использовать для опросов
-          </Alert>
-          <MuiTextField
-            autoFocus
-            label="Google Email"
-            type="email"
-            fullWidth
-            value={googleEmail}
-            onChange={(e) => setGoogleEmail(e.target.value)}
-            placeholder="example@gmail.com"
-          />
-        </DialogContent>
-        <DialogActions>
-          <MuiButton onClick={() => setConnectDialogOpen(false)}>Отмена</MuiButton>
-          <MuiButton onClick={handleConnectGoogle} variant="contained">
-            Подключить
-          </MuiButton>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

@@ -7,6 +7,18 @@ export const getGoogleAccounts = async () => {
   return response.data;
 };
 
+// Инициировать подключение Google аккаунта через OAuth
+export const initiateGoogleAccountConnect = async (redirectUri: string) => {
+  const response = await apiClient.get<{
+    authorization_url: string;
+    message: string;
+    user_id: number;
+  }>('/google-accounts/connect', {
+    params: { redirect_uri: redirectUri },
+  });
+  return response.data;
+};
+
 // Подключить Google аккаунт (после OAuth callback)
 export const connectGoogleAccount = async (data: ConnectGoogleAccountRequest) => {
   const response = await apiClient.post<{ account: GoogleAccount }>(

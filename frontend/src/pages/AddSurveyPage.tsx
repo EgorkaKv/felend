@@ -72,7 +72,7 @@ const AddSurveyPage = () => {
   // Получение Google аккаунтов
   const { data: googleAccountsData } = useSWR('/google-accounts', async () => {
     const data = await getGoogleAccounts();
-    return data.accounts;
+    return data.google_accounts;
   });
   const googleAccounts = useMemo(
     () => googleAccountsData || [],
