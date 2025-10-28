@@ -71,11 +71,19 @@ def generate_random_string(length: int = 32) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
-def create_oauth_state(user_id: int, csrf_token: Optional[str] = None) -> str:
+def create_oauth_state(user_id: int, frontend_redirect_uri: Optional[str] = None, csrf_token: Optional[str] = None) -> str:
     """
     Создание JWT state для OAuth (подключение Google аккаунта к существующему user)
     
     Используется для flow подключения Google Forms к уже авторизованному пользователю.
+    
+    Args:
+        user_id: ID пользователя
+        frontend_redirect_uri: URL фронтенда для редиректа после обработки callback (опционально)
+        csrf_token: CSRF токен (генерируется автоматически если не передан)
+    
+    Returns:
+        str: Закодированный JWT state
     """
     if not csrf_token:
         csrf_token = generate_random_string(32)
@@ -85,6 +93,10 @@ def create_oauth_state(user_id: int, csrf_token: Optional[str] = None) -> str:
         "csrf_token": csrf_token,
         "created_at": datetime.now(timezone.utc).timestamp()
     }
+    
+    # Добавляем frontend_redirect_uri если передан
+    if frontend_redirect_uri:
+        data["frontend_redirect_uri"] = frontend_redirect_uri
     
     # Время жизни state = 15 минут
     expire = datetime.now(timezone.utc) + timedelta(minutes=15)

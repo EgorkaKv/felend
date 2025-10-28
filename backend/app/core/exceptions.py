@@ -36,6 +36,8 @@ class ErrorCodes:
     GOOGLE_FORM_NOT_FOUND = "GOOGLE003"
     GOOGLE_ACCOUNT_NOT_FOUND = "GOOGLE004"
     GOOGLE_TOKEN_INVALID = "GOOGLE005"
+    GOOGLE_ACCOUNT_ALREADY_CONNECTED_TO_USER = "GOOGLE006"
+    GOOGLE_ACCOUNT_ALREADY_CONNECTED_TO_ANOTHER_USER = "GOOGLE007"
     
     # Email Verification
     VERIFICATION_TOKEN_EXPIRED = "VERIFY001"
@@ -134,6 +136,32 @@ class GoogleAPIException(FelendException):
     """Ошибки внешних API (502/503)"""
     def __init__(self, message: str = "External API error", error_code: str = ErrorCodes.GOOGLE_FORM_ACCESS_DENIED, context: Optional[Dict[str, Any]] = None):
         super().__init__(message, status.HTTP_502_BAD_GATEWAY, error_code, context)
+
+
+class GoogleAccountAlreadyConnectedException(ConflictException):
+    """Google account already connected to this user"""
+    def __init__(self, google_email: str, context: Optional[Dict[str, Any]] = None):
+        full_context = {"google_email": google_email}
+        if context:
+            full_context.update(context)
+        super().__init__(
+            f"Google account {google_email} is already connected to your account",
+            ErrorCodes.GOOGLE_ACCOUNT_ALREADY_CONNECTED_TO_USER,
+            full_context
+        )
+
+
+class GoogleAccountConnectedToAnotherUserException(ConflictException):
+    """Google account is already connected to a different user"""
+    def __init__(self, google_email: str, context: Optional[Dict[str, Any]] = None):
+        full_context = {"google_email": google_email}
+        if context:
+            full_context.update(context)
+        super().__init__(
+            f"Google account {google_email} is already connected to another user",
+            ErrorCodes.GOOGLE_ACCOUNT_ALREADY_CONNECTED_TO_ANOTHER_USER,
+            full_context
+        )
 
 
 # === СПЕЦИФИЧНЫЕ ИСКЛЮЧЕНИЯ ===

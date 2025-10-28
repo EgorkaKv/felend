@@ -284,46 +284,80 @@ class GoogleAuthService:
 
     async def link_google_account(
         self, code: str, state: str, google_account_service: GoogleAccountsService
-    ):
+    ) -> dict:
         """
         Обработка Google OAuth callback: проверка state, обмен code на токены, поиск пользователя, подключение Google аккаунта.
-        Возвращает dict с результатом для контроллера.
+        
+        Returns:
+            dict с ключами:
+                - success (bool): Успешность операции
+                - frontend_redirect_uri (str | None): URL для редиректа
+                - email (str | None): Email Google аккаунта при успехе
+                - error_code (str | None): Код ошибки при неудаче
+                - error_message (str | None): Сообщение об ошибке при неудаче
         """
+        from app.core.exceptions import (
+            GoogleAccountAlreadyConnectedException,
+            GoogleAccountConnectedToAnotherUserException
+        )
+        
         # Проверяем и декодируем JWT state
         state_payload = verify_oauth_state(state)
         
         if not state_payload:
-            raise GoogleAPIException("Недействительный или истекший state параметр")
+            return {
+                "success": False,
+                "frontend_redirect_uri": None,
+                "error_code": "invalid_state",
+                "error_message": "Invalid or expired state parameter"
+            }
         
         user_id = state_payload.get("user_id")
+        frontend_redirect_uri = state_payload.get("frontend_redirect_uri")
 
         if not user_id:
-            raise GoogleAPIException("Отсутствует user_id в state")
+            return {
+                "success": False,
+                "frontend_redirect_uri": frontend_redirect_uri,
+                "error_code": "invalid_state",
+                "error_message": "Missing user_id in state"
+            }
         
-        tokens_data = await self.exchange_code_for_tokens(code)
-        
-        google_user_info = tokens_data["user_info"]
-        google_email = google_user_info.get("email")
-        google_name = google_user_info.get("name", "Google User")
-
-        if not google_email:
-            raise GoogleAPIException("Не удалось получить email от Google")
-        
-        # Извлекаем Google ID
-        google_id = google_user_info.get("sub") or google_user_info.get("id")
-        expires_at = None
-
-        if tokens_data.get("expires_at"):
-            expires_at = datetime.fromtimestamp(
-                tokens_data["expires_at"], tz=timezone.utc
-            )
-
-        user = user_repository.get(self.db, user_id)
-
-        if not user:
-            raise GoogleAPIException("Пользователь не найден")
-
         try:
+            tokens_data = await self.exchange_code_for_tokens(code)
+            
+            google_user_info = tokens_data["user_info"]
+            google_email = google_user_info.get("email")
+            google_name = google_user_info.get("name", "Google User")
+
+            if not google_email:
+                return {
+                    "success": False,
+                    "frontend_redirect_uri": frontend_redirect_uri,
+                    "error_code": "google_api_error",
+                    "error_message": "Failed to retrieve email from Google"
+                }
+            
+            # Извлекаем Google ID
+            google_id = google_user_info.get("sub") or google_user_info.get("id")
+            expires_at = None
+
+            if tokens_data.get("expires_at"):
+                expires_at = datetime.fromtimestamp(
+                    tokens_data["expires_at"], tz=timezone.utc
+                )
+
+            user = user_repository.get(self.db, user_id)
+
+            if not user:
+                return {
+                    "success": False,
+                    "frontend_redirect_uri": frontend_redirect_uri,
+                    "error_code": "user_not_found",
+                    "error_message": "User not found"
+                }
+
+            # Пытаемся подключить Google аккаунт
             google_account = google_account_service.connect_google_account(
                 user_id=user.id,
                 google_id=google_id,
@@ -336,23 +370,44 @@ class GoogleAuthService:
             
             logger.info(f"Google account {google_id} linked to user {user.id}")
             
-        except ValueError as connect_error:
-            raise GoogleAPIException(
-                f"Ошибка валидации при подключении Google аккаунта: {connect_error}"
-            )
-        except Exception as connect_error:
-            raise GoogleAPIException(
-                f"Не удалось подключить Google аккаунт: {connect_error}"
-            )
-        return {
-            "message": "Google аккаунт успешно подключен",
-            "user_id": user.id,
-            "user_email": user.email,
-            "google_account_id": google_account.id,
-            "google_account_email": google_account.email,
-            "is_primary": google_account.is_primary,
-            "google_connected": True,
-        }
+            return {
+                "success": True,
+                "frontend_redirect_uri": frontend_redirect_uri,
+                "email": google_email
+            }
+            
+        except GoogleAccountAlreadyConnectedException as e:
+            return {
+                "success": False,
+                "frontend_redirect_uri": frontend_redirect_uri,
+                "error_code": "account_already_connected",
+                "error_message": "This Google account is already connected to your account"
+            }
+            
+        except GoogleAccountConnectedToAnotherUserException as e:
+            return {
+                "success": False,
+                "frontend_redirect_uri": frontend_redirect_uri,
+                "error_code": "account_connected_to_another_user",
+                "error_message": "This Google account is already connected to another user"
+            }
+            
+        except GoogleAPIException as e:
+            return {
+                "success": False,
+                "frontend_redirect_uri": frontend_redirect_uri,
+                "error_code": "google_api_error",
+                "error_message": str(e.message) if hasattr(e, 'message') else str(e)
+            }
+            
+        except Exception as e:
+            logger.error(f"Unexpected error linking Google account: {e}")
+            return {
+                "success": False,
+                "frontend_redirect_uri": frontend_redirect_uri,
+                "error_code": "internal_error",
+                "error_message": "An unexpected error occurred"
+            }
     
     async def process_google_auth_callback(
         self, 

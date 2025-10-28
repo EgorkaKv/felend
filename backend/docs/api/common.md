@@ -50,6 +50,8 @@ All error responses follow a standardized format:
 | GOOGLE001     | GoogleAccountNotFoundException     | Google account not found             |
 | GOOGLE002     | GoogleAccountRetrievalException    | Error retrieving Google accounts     |
 | GOOGLE003     | GoogleAPIException                 | Google API error                     |
+| GOOGLE006     | GoogleAccountAlreadyConnectedException | Google account already connected to user |
+| GOOGLE007     | GoogleAccountConnectedToAnotherUserException | Google account connected to another user |
 | FORM001       | InvalidFormUrlException            | Invalid Google Form URL              |
 | FORM002       | FormAccessDeniedException          | No access to form                    |
 | FORM003       | FormValidationException            | Failed to validate form              |

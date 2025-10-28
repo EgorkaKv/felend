@@ -84,12 +84,16 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### GET /google-accounts/connect
 
-Initiate Google OAuth flow for linking a Google account to the current authenticated user (for Google Forms access).
+Initiate Google OAuth flow for linking a Google account to the current authenticated user (for Google Forms access). Requires a `redirect_uri` query parameter.
+
+**Query Parameters:**
+
+- `redirect_uri` (required): Frontend URL for redirect after OAuth completion
 
 **Request:**
 
 ```
-GET /api/v1/google-accounts/connect
+GET /api/v1/google-accounts/connect?redirect_uri=http://localhost:5173/google-accounts/success
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
@@ -122,6 +126,24 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
+**422 Unprocessable Entity - Invalid Origin:**
+
+```json
+{
+  "error": {
+    "message": "Frontend origin http://malicious.com is not allowed",
+    "code": "OAUTH001",
+    "type": "InvalidFrontendOriginException",
+    "details": {
+      "origin": "http://malicious.com",
+      "allowed_origins": ["http://localhost:5173", "http://localhost:3000"]
+    },
+    "timestamp": "2025-10-29T12:00:00Z",
+    "path": "/api/v1/google-accounts/connect"
+  }
+}
+```
+
 **500 Internal Server Error:**
 
 ```json
@@ -141,51 +163,47 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ### GET /google-accounts/callback
 
-Google OAuth callback endpoint for account linking. Handles the authorization code from Google and links the Google account to the user.
+Google OAuth callback endpoint for account linking. Handles the authorization code from Google, links the Google account to the user, and redirects to the frontend with result parameters.
 
 **Query Parameters:**
 
 - `code` (required): Authorization code from Google
-- `state` (required): JWT state token containing user_id
+- `state` (required): JWT state token containing user_id and frontend_redirect_uri
 - `scope` (optional): Scopes granted during authorization
 
-**Response (200 OK):**
+**Response (302 Found):**
 
-```json
-{
-  "message": "Google аккаунт успешно подключен",
-  "user_id": 1,
-  "user_email": "student@example.com",
-  "google_account_id": 5,
-  "google_account_email": "student@gmail.com",
-  "is_primary": true,
-  "google_connected": true
-}
+Redirects to the `redirect_uri` specified in `/connect` with result parameters:
+
+**Success Redirect:**
 ```
+http://localhost:5173/google-accounts/success?google_connected=success&email=student@gmail.com
+```
+
+**Error Redirect:**
+```
+http://localhost:5173/google-accounts/success?google_connected=error&error_code=account_already_connected&message=This+Google+account+is+already+connected+to+your+account
+```
+
+**Error Codes:**
+
+| Error Code | Description |
+|------------|-------------|
+| `invalid_state` | Invalid or expired state parameter |
+| `user_not_found` | User not found |
+| `account_already_connected` | This Google account is already connected to your account |
+| `account_connected_to_another_user` | This Google account is already connected to another user |
+| `google_api_error` | Failed to retrieve data from Google or Google API error |
+| `internal_error` | An unexpected error occurred |
 
 **Error Responses:**
 
-**400 Bad Request - Invalid State or Code:**
+**500 Internal Server Error (only when redirect_uri is missing):**
 
 ```json
 {
   "error": {
-    "message": "Недействительный или истекший state параметр",
-    "code": "GOOGLE003",
-    "type": "GoogleAPIException",
-    "details": null,
-    "timestamp": "2025-10-29T12:00:00Z",
-    "path": "/api/v1/google-accounts/callback"
-  }
-}
-```
-
-**500 Internal Server Error:**
-
-```json
-{
-  "error": {
-    "message": "Ошибка при обработке Google авторизации",
+    "message": "Failed to process Google OAuth callback",
     "code": "SERVER001",
     "type": "InternalServerError",
     "details": null,

@@ -30,25 +30,36 @@ class GoogleAccountsService:
         refresh_token: Optional[str] = None,
         token_expires_at: Optional[datetime] = None,
     ) -> GoogleAccount:
-        """Подключить Google аккаунт к существующему пользователю"""
+        """
+        Подключить Google аккаунт к существующему пользователю
+        
+        Raises:
+            GoogleAccountAlreadyConnectedException: Если аккаунт уже подключен к этому пользователю
+            GoogleAccountConnectedToAnotherUserException: Если аккаунт подключен к другому пользователю
+        """
+        from app.core.exceptions import (
+            GoogleAccountAlreadyConnectedException,
+            GoogleAccountConnectedToAnotherUserException
+        )
+        
         existing_google_account = self.google_account_repo.get_by_google_id(
             self.db, google_id
         )
 
         if existing_google_account:
-
-            if existing_google_account.user_id != user_id:
-                raise UserAlreadyExistsException(
-                    "This Google account is already connected to another user"
+            # Проверяем, к какому пользователю привязан аккаунт
+            if existing_google_account.user_id == user_id:
+                # Аккаунт уже подключен к текущему пользователю
+                raise GoogleAccountAlreadyConnectedException(
+                    google_email=email,
+                    context={"google_id": google_id, "user_id": user_id}
                 )
-
-            return self.google_account_repo.update_tokens(
-                db=self.db,
-                account_id=existing_google_account.id,
-                access_token=access_token,
-                refresh_token=refresh_token,
-                token_expires_at=token_expires_at,
-            )
+            else:
+                # Аккаунт подключен к другому пользователю
+                raise GoogleAccountConnectedToAnotherUserException(
+                    google_email=email,
+                    context={"google_id": google_id}
+                )
 
         return self.google_account_repo.create_google_account(
             db=self.db,
