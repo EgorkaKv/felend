@@ -3,9 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Viewport для корректной работы на мобильных устройствах -->
+    <meta 
+      name="viewport" 
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" 
+    />
+    
+    <!-- PWA и SEO метатеги -->
     <meta name="description" content="Felend - платформа для опросов" />
-    <meta name="theme-color" content="#1976d2" />
+    <meta name="theme-color" content="#4D96FF" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Felend" />
+    
+    <!-- Предотвращаем автоматическое определение номеров телефонов на iOS -->
+    <meta name="format-detection" content="telephone=no" />
     
     <!-- DNS Prefetch for API -->
     <link rel="dns-prefetch" href="https://api.felend.com" />

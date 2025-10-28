@@ -21,8 +21,15 @@ export const MainLayout = () => {
         component="main"
         sx={{
           flex: 1,
-          pb: { xs: 8, md: 0 }, // Padding bottom для Bottom Navigation на мобильных
+          // Padding для bottom navigation + safe area для iPhone
+          pb: { 
+            xs: 'calc(64px + env(safe-area-inset-bottom))', 
+            md: 0 
+          },
+          pt: { xs: 2, md: 0 }, // Небольшой отступ сверху на мобильных
           overflow: 'auto',
+          // Smooth scroll на мобильных
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <Outlet />

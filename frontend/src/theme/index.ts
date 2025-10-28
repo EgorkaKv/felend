@@ -165,20 +165,34 @@ const theme = createTheme({
 
   // Настройка компонентов
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          // Отключаем pull-to-refresh и bounce на iOS
+          overscrollBehavior: 'none',
+          // Предотвращаем zoom на iOS при фокусе
+          touchAction: 'manipulation',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
           borderRadius: 8,
           padding: '10px 20px',
           fontWeight: 600,
+          // Улучшаем touch target на мобильных (минимум 44px)
+          minHeight: 44,
         },
         sizeLarge: {
           padding: '12px 24px',
           fontSize: '1rem',
+          minHeight: 48,
         },
         sizeSmall: {
           padding: '6px 16px',
           fontSize: '0.813rem',
+          minHeight: 36,
         },
       },
     },
@@ -187,6 +201,8 @@ const theme = createTheme({
         root: {
           borderRadius: 12,
           boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+          // Улучшаем производительность на мобильных
+          willChange: 'transform',
         },
       },
     },
@@ -196,6 +212,10 @@ const theme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
           },
+          // Фикс для iOS - минимум 16px font-size предотвращает zoom
+          '& input': {
+            fontSize: '1rem',
+          },
         },
       },
     },
@@ -204,6 +224,14 @@ const theme = createTheme({
         root: {
           height: 64,
           borderTop: '1px solid #E5E7EB',
+          // Фиксируем внизу на мобильных
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          // Добавляем safe area для iPhone с вырезом
+          paddingBottom: 'env(safe-area-inset-bottom)',
         },
       },
     },
@@ -211,9 +239,29 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           minWidth: 60,
+          // Улучшаем touch target
+          minHeight: 64,
           '&.Mui-selected': {
             fontSize: '0.75rem',
           },
+        },
+      },
+    },
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          // Добавляем safe area padding для iPhone
+          paddingLeft: 'max(16px, env(safe-area-inset-left))',
+          paddingRight: 'max(16px, env(safe-area-inset-right))',
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          // Минимальный размер touch target 44px
+          minWidth: 44,
+          minHeight: 44,
         },
       },
     },
