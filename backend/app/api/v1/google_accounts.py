@@ -2,8 +2,12 @@
 Google аккаунты пользователя и статус подключения
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.deps import get_current_active_user
+from fastapi import Query
+from app.api.deps import get_current_active_user, get_google_auth_service
+from app.core.exceptions import GoogleAPIException
+from app.core.security import create_oauth_state
 from app.services.google_accounts_service import GoogleAccountsService
 from fastapi import Depends
 from app.api.deps import get_google_accounts_service
@@ -12,9 +16,77 @@ from app.schemas import GoogleAccountsListResponse, ErrorResponse
 from datetime import datetime, timezone
 import logging
 
+from app.services.google_auth_service import GoogleAuthService
+
 
 router = APIRouter(prefix="/google-accounts", tags=["Google-accounts"])
 logger = logging.getLogger(__name__)
+
+@router.get("/connect")
+async def google_connect(
+    current_user: User = Depends(get_current_active_user),
+    google_auth_service: GoogleAuthService=Depends(get_google_auth_service),
+):
+    """
+    Инициировать Google OAuth flow для подключения аккаунта к существующему пользователю (для Google Forms)
+    """
+    try:
+        # Создаем state с user_id для flow подключения аккаунта
+        state = create_oauth_state(current_user.id)
+        
+        # Генерируем URL с полными scopes (включая Google Forms API)
+        authorization_url = google_auth_service.get_authorization_url(
+            state=state,
+            redirect_uri="http://localhost:8000/api/v1/google-accounts/callback"
+        )
+
+        return {
+            "authorization_url": authorization_url,
+            "message": "Перейдите по ссылке для авторизации в Google",
+            "user_id": current_user.id,
+        }
+
+    except GoogleAPIException as e:
+        logger.error(f"Ошибка создания Google authorization URL: {e}")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Неожиданная ошибка в Google connect: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при инициализации Google авторизации",
+        )
+
+
+@router.get("/callback")
+async def google_callback(
+    code: str = Query(..., description="Authorization code from Google"),
+    state: str = Query(..., description="JWT state with user_id"),
+    scope: Optional[str] = Query(None, description="Scopes requested during authorization"),
+    google_auth_service=Depends(get_google_auth_service),
+    google_accounts_service=Depends(get_google_accounts_service)
+):
+    """
+    Callback endpoint для обработки ответа от Google OAuth
+    """
+
+    try:
+        result = await google_auth_service.link_google_account(
+            code, state, google_accounts_service
+        )
+
+        return result
+
+    except GoogleAPIException as e:
+        logger.error(f"Google API error in callback: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Unexpected error in Google callback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при обработке Google авторизации",
+        )
 
 
 @router.get(

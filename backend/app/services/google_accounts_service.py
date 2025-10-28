@@ -70,13 +70,21 @@ class GoogleAccountsService:
         refresh_token: Optional[str] = None,
         token_expires_at: Optional[datetime] = None,
     ) -> Tuple[User, GoogleAccount]:
+        """
+        Регистрация или вход через Google OAuth (возвращает пользователя и Google аккаунт)
         
-        """Регистрация или вход через Google OAuth (возвращает пользователя и Google аккаунт)"""
+        Логика поиска (согласно google-auth-flow.md):
+        1. Ищем в google_accounts по google_id → если нашли → авторизация (обновляем токены)
+        2. Ищем в users по email → если нашли → авторизация + привязка Google аккаунта
+        3. Если не нашли → регистрация нового пользователя + создание Google аккаунта
+        """
+        # Шаг 1: Ищем существующий Google аккаунт по google_id
         existing_google_account = self.google_account_repo.get_by_google_id(
             self.db, google_id
         )
 
         if existing_google_account:
+            # Google аккаунт уже привязан к пользователю → авторизация
             google_account = self.google_account_repo.update_tokens(
                 db=self.db,
                 account_id=existing_google_account.id,
@@ -88,8 +96,11 @@ class GoogleAccountsService:
             user = self.user_repo.get(self.db, existing_google_account.user_id)
             return user, google_account
         
+        # Шаг 2: Google аккаунт не найден, ищем пользователя по email
         existing_user = self.user_repo.get_by_email(self.db, email)
         if existing_user:
+            # Пользователь существует (регистрировался через email+password)
+            # → авторизация + привязка Google аккаунта
             google_account = self.google_account_repo.create_google_account(
                 db=self.db,
                 user_id=existing_user.id,
@@ -102,6 +113,7 @@ class GoogleAccountsService:
             )
             return existing_user, google_account
         
+        # Шаг 3: Пользователь не найден → регистрация нового пользователя
         else:
             user = self.user_repo.create_user(
                 db=self.db,

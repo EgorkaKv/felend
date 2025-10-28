@@ -72,7 +72,11 @@ def generate_random_string(length: int = 32) -> str:
 
 
 def create_oauth_state(user_id: int, csrf_token: Optional[str] = None) -> str:
-    """Создание JWT state для OAuth с user_id и CSRF protection"""
+    """
+    Создание JWT state для OAuth (подключение Google аккаунта к существующему user)
+    
+    Используется для flow подключения Google Forms к уже авторизованному пользователю.
+    """
     if not csrf_token:
         csrf_token = generate_random_string(32)
     
@@ -90,14 +94,68 @@ def create_oauth_state(user_id: int, csrf_token: Optional[str] = None) -> str:
     return encoded_state
 
 
+def create_google_auth_state(frontend_redirect_uri: str, csrf_token: Optional[str] = None) -> str:
+    """
+    Создание JWT state для Google авторизации/регистрации (публичный flow)
+    
+    Используется для flow регистрации/входа через Google без pre-existing аккаунта.
+    
+    Args:
+        frontend_redirect_uri: URL фронтенда для редиректа после успешной авторизации
+        csrf_token: CSRF токен (генерируется автоматически если не передан)
+    
+    Returns:
+        str: Закодированный JWT state
+    """
+    if not csrf_token:
+        csrf_token = generate_random_string(32)
+    
+    data = {
+        "frontend_redirect_uri": frontend_redirect_uri,
+        "csrf_token": csrf_token,
+        "created_at": datetime.now(timezone.utc).timestamp()
+    }
+    
+    # Время жизни state = 15 минут
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    data.update({"exp": expire, "type": "google_auth_state"})
+    
+    encoded_state = jwt.encode(data, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encoded_state
+
+
 def verify_oauth_state(state: str) -> Optional[dict]:
-    """Проверка и декодирование JWT state для OAuth"""
+    """
+    Проверка и декодирование JWT state для OAuth (подключение аккаунта)
+    
+    Возвращает payload с user_id для flow подключения Google Forms.
+    """
     try:
         payload = jwt.decode(state, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         if payload.get("type") != "oauth_state":
             return None
         
         # Проверяем что state не истек (это уже делает jwt.decode, но для ясности)
+        if datetime.fromtimestamp(payload.get("exp", 0), tz=timezone.utc) < datetime.now(timezone.utc):
+            return None
+            
+        return payload
+    except JWTError:
+        return None
+
+
+def verify_google_auth_state(state: str) -> Optional[dict]:
+    """
+    Проверка и декодирование JWT state для Google авторизации/регистрации
+    
+    Возвращает payload с frontend_redirect_uri для публичного auth flow.
+    """
+    try:
+        payload = jwt.decode(state, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("type") != "google_auth_state":
+            return None
+        
+        # Проверяем что state не истек
         if datetime.fromtimestamp(payload.get("exp", 0), tz=timezone.utc) < datetime.now(timezone.utc):
             return None
             

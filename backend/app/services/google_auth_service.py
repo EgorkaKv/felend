@@ -2,15 +2,24 @@
 Сервис для работы с Google OAuth 2.0 и Google Forms API
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional, Tuple
+from urllib.parse import urlparse
 import httpx
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from google.auth.exceptions import GoogleAuthError, RefreshError
-from app.core.security import create_oauth_state, verify_oauth_state
+from app.core.security import create_oauth_state, verify_oauth_state, create_google_auth_state, verify_google_auth_state, create_access_token, create_refresh_token
 from app.repositories.user_repository import user_repository
-from app.core.exceptions import GoogleAPIException, FelendException
+from app.repositories.oauth_token_repository import oauth_token_repository
+from app.core.exceptions import (
+    GoogleAPIException, 
+    FelendException, 
+    InvalidFrontendOriginException,
+    TemporaryTokenNotFoundException,
+    TemporaryTokenExpiredException
+)
+from app.core.config import settings
 from datetime import datetime, timezone
 import logging
 from sqlalchemy.orm import Session
@@ -35,36 +44,151 @@ class GoogleAuthService:
                 "redirect_uris": [google_settings.GOOGLE_REDIRECT_URI],
             }
         }
+    
+    def _is_frontend_origin_allowed(self, origin: str) -> bool:
+        """
+        Проверить, разрешен ли frontend origin
         
-    def get_authorization_url(self, user_id: int) -> str:
+        Сравнивает переданный URL с whitelist разрешенных origins.
+        Извлекает схему + хост + порт из URL, игнорируя путь и query параметры.
+        
+        Args:
+            origin: Полный URL (например, "http://localhost:3000/auth/callback")
+        
+        Returns:
+            bool: True если origin в whitelist
+            
+        Examples:
+            >>> _is_frontend_origin_allowed("http://localhost:3000/auth/callback")
+            True  # если "http://localhost:3000" в ALLOWED_FRONTEND_ORIGINS
+            
+            >>> _is_frontend_origin_allowed("http://localhost:3000/some/path?token=123")
+            True  # путь и query игнорируются
+            
+            >>> _is_frontend_origin_allowed("http://evil.com")
+            False  # не в whitelist
         """
-        Получить URL для авторизации пользователя в Google.
-
-        Возвращаемый URL уже содержит параметр state для защиты от CSRF.
+        try:
+            # Парсим переданный URL
+            parsed = urlparse(origin)
+            
+            # Формируем origin (scheme + netloc)
+            # netloc включает host:port
+            if not parsed.scheme or not parsed.netloc:
+                logger.warning(f"Invalid origin format: {origin}")
+                return False
+            
+            # Формируем origin без пути: scheme://netloc
+            origin_base = f"{parsed.scheme}://{parsed.netloc}"
+            
+            # Проверяем наличие в whitelist
+            allowed = origin_base in settings.allowed_frontend_origins_list
+            
+            if not allowed:
+                logger.warning(
+                    f"Origin not allowed: {origin_base}. "
+                    f"Allowed origins: {settings.allowed_frontend_origins_list}"
+                )
+            
+            return allowed
+            
+        except Exception as e:
+            logger.error(f"Error parsing origin {origin}: {e}")
+            return False
+    
+    def init_google_auth(self, frontend_redirect_uri: str) -> str:
         """
-
-        state = create_oauth_state(user_id)
+        Инициировать Google OAuth flow для публичной авторизации/регистрации
+        
+        Args:
+            frontend_redirect_uri: URL фронтенда для редиректа после авторизации
+        
+        Returns:
+            str: URL для редиректа на Google OAuth
+            
+        Raises:
+            InvalidFrontendOriginException: Если origin не в whitelist
+        """
+        logger.info(f"Initiating Google auth for frontend: {frontend_redirect_uri}")
+        
+        # Валидация frontend origin
+        if not self._is_frontend_origin_allowed(frontend_redirect_uri):
+            raise InvalidFrontendOriginException(frontend_redirect_uri)
+        
+        # Создаем state с frontend_redirect_uri
+        state = create_google_auth_state(frontend_redirect_uri)
+        
+        # Генерируем URL с минимальными scopes (без Google Forms API)
+        authorization_url = self.get_authorization_url(
+            state=state,
+            redirect_uri=google_settings.GOOGLE_REDIRECT_URI,
+            scopes=google_settings.GOOGLE_AUTH_SCOPES
+        )
+        
+        logger.info("Google auth URL generated successfully")
+        return authorization_url
+        
+    def get_authorization_url(
+        self, 
+        state: str,
+        redirect_uri: str = google_settings.GOOGLE_REDIRECT_URI,
+        scopes: Optional[List[str]] = None
+    ) -> str:
+        """
+        Получить URL для авторизации пользователя в Google
+        
+        Args:
+            state: JWT state токен (создан через create_oauth_state или create_google_auth_state)
+            redirect_uri: URL для callback (по умолчанию из конфига)
+            scopes: Список scopes (по умолчанию GOOGLE_SCOPES для Forms)
+        
+        Returns:
+            str: URL для редиректа пользователя на Google OAuth
+        """
+        if scopes is None:
+            scopes = google_settings.GOOGLE_SCOPES
 
         flow = Flow.from_client_config(
-            self.client_config, scopes=google_settings.GOOGLE_SCOPES
+            self.client_config, scopes=scopes
         )
-        flow.redirect_uri = google_settings.GOOGLE_REDIRECT_URI
+        flow.redirect_uri = redirect_uri
 
         authorization_url, _ = flow.authorization_url(
-            access_type="offline", include_granted_scopes="true", state=state, prompt="consent"
+            access_type="offline", 
+            include_granted_scopes="true", 
+            state=state, 
+            prompt="consent"
         )
 
         return authorization_url
 
 
-    async def exchange_code_for_tokens(self, code: str) -> Dict[str, Any]:
-        """Обменять authorization code на токены"""
+    async def exchange_code_for_tokens(
+        self, 
+        code: str,
+        redirect_uri: str = google_settings.GOOGLE_REDIRECT_URI,
+        scopes: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Обменять authorization code на токены
+        
+        Args:
+            code: Authorization code от Google
+            redirect_uri: URL callback (должен совпадать с тем, что был в authorization_url)
+            scopes: Список scopes (по умолчанию GOOGLE_SCOPES)
+        
+        Returns:
+            Dict с access_token, refresh_token, expires_at, user_info
+        """
+        if scopes is None:
+            scopes = google_settings.GOOGLE_SCOPES
+            
         try:
             # Создаем flow без проверки скопов для избежания проблем с их порядком
             flow = Flow.from_client_config(
-                self.client_config, scopes=google_settings.GOOGLE_SCOPES
+                self.client_config, scopes=scopes
             )
-            flow.redirect_uri = google_settings.GOOGLE_REDIRECT_URI
+            flow.redirect_uri = redirect_uri
 
             # Отключаем строгую проверку скопов
             import warnings
@@ -167,25 +291,25 @@ class GoogleAuthService:
         """
         # Проверяем и декодируем JWT state
         state_payload = verify_oauth_state(state)
-        print(1)
+        
         if not state_payload:
             raise GoogleAPIException("Недействительный или истекший state параметр")
-        print(2)
+        
         user_id = state_payload.get("user_id")
 
         if not user_id:
             raise GoogleAPIException("Отсутствует user_id в state")
-        print(3)
+        
         tokens_data = await self.exchange_code_for_tokens(code)
-        print(4)
+        
         google_user_info = tokens_data["user_info"]
         google_email = google_user_info.get("email")
         google_name = google_user_info.get("name", "Google User")
 
         if not google_email:
             raise GoogleAPIException("Не удалось получить email от Google")
-        print(5)
-        # FIXME: четкие объекты получаемы от гугл, а не пальцем в небо
+        
+        # Извлекаем Google ID
         google_id = google_user_info.get("sub") or google_user_info.get("id")
         expires_at = None
 
@@ -194,12 +318,10 @@ class GoogleAuthService:
                 tokens_data["expires_at"], tz=timezone.utc
             )
 
-        print(7)
         user = user_repository.get(self.db, user_id)
 
         if not user:
             raise GoogleAPIException("Пользователь не найден")
-        print(8)
 
         try:
             google_account = google_account_service.connect_google_account(
@@ -211,7 +333,9 @@ class GoogleAuthService:
                 refresh_token=tokens_data.get("refresh_token"),
                 token_expires_at=expires_at,
             )
-            print(9)
+            
+            logger.info(f"Google account {google_id} linked to user {user.id}")
+            
         except ValueError as connect_error:
             raise GoogleAPIException(
                 f"Ошибка валидации при подключении Google аккаунта: {connect_error}"
@@ -229,3 +353,126 @@ class GoogleAuthService:
             "is_primary": google_account.is_primary,
             "google_connected": True,
         }
+    
+    async def process_google_auth_callback(
+        self, 
+        code: str, 
+        state: str,
+        google_accounts_service: GoogleAccountsService
+    ) -> Tuple[str, str]:
+        """
+        Обработка Google OAuth callback для публичной авторизации/регистрации
+        
+        Args:
+            code: Authorization code от Google
+            state: JWT state с frontend_redirect_uri
+            google_accounts_service: Сервис для работы с Google аккаунтами
+        
+        Returns:
+            Tuple[temporary_token, frontend_redirect_uri]: Одноразовый токен и URL для редиректа
+            
+        Raises:
+            GoogleAPIException: Ошибки при работе с Google API
+            InvalidFrontendOriginException: Некорректный state
+        """
+        # Cleanup expired tokens
+        oauth_token_repository.cleanup_expired(self.db)
+        
+        # Проверяем и декодируем JWT state
+        state_payload = verify_google_auth_state(state)
+        if not state_payload:
+            raise GoogleAPIException("Недействительный или истекший state параметр")
+        
+        frontend_redirect_uri = state_payload.get("frontend_redirect_uri")
+        if not frontend_redirect_uri:
+            raise GoogleAPIException("Отсутствует frontend_redirect_uri в state")
+        
+        # Обмениваем code на токены Google (с минимальными scopes)
+        tokens_data = await self.exchange_code_for_tokens(
+            code=code,
+            redirect_uri=google_settings.GOOGLE_REDIRECT_URI,
+            scopes=google_settings.GOOGLE_AUTH_SCOPES
+        )
+        
+        google_user_info = tokens_data["user_info"]
+        google_id = google_user_info.get("sub") or google_user_info.get("id")
+        google_email = google_user_info.get("email")
+        google_name = google_user_info.get("name", "Google User")
+        
+        if not google_email or not google_id:
+            raise GoogleAPIException("Не удалось получить email или ID от Google")
+        
+        # Регистрируем или авторизуем пользователя
+        expires_at = None
+        if tokens_data.get("expires_at"):
+            expires_at = datetime.fromtimestamp(tokens_data["expires_at"], tz=timezone.utc)
+        
+        user, google_account = google_accounts_service.register_or_login_google_user(
+            google_id=google_id,
+            email=google_email,
+            full_name=google_name,
+            access_token=tokens_data["access_token"],
+            refresh_token=tokens_data.get("refresh_token"),
+            token_expires_at=expires_at
+        )
+        
+        # Создаем одноразовый токен (TTL 5 минут)
+        temporary_token = oauth_token_repository.create_token(
+            db=self.db,
+            user_id=user.id,
+            ttl_minutes=5
+        )
+        
+        return temporary_token, frontend_redirect_uri
+    
+    def exchange_temporary_token(self, token: str) -> Tuple[str, str, dict]:
+        """
+        Обменять одноразовый токен на JWT access/refresh tokens
+        
+        Args:
+            token: Одноразовый токен из callback
+        
+        Returns:
+            Tuple[access_token, refresh_token, user_dict]: JWT токены и данные пользователя
+            
+        Raises:
+            TemporaryTokenNotFoundException: Токен не найден
+            TemporaryTokenExpiredException: Токен истек или уже использован
+        """
+        # Cleanup expired tokens
+        oauth_token_repository.cleanup_expired(self.db)
+        
+        # Получаем токен из БД
+        oauth_token = oauth_token_repository.get_by_token(self.db, token)
+        
+        if not oauth_token:
+            raise TemporaryTokenNotFoundException(token)
+        
+        # Проверяем валидность токена
+        if not oauth_token_repository.is_token_valid(oauth_token):
+            raise TemporaryTokenExpiredException(token)
+        
+        # Помечаем токен как использованный
+        oauth_token_repository.mark_as_used(self.db, oauth_token.id)
+        
+        # Получаем пользователя
+        user = user_repository.get(self.db, oauth_token.user_id)
+        
+        if not user:
+            raise GoogleAPIException("Пользователь не найден")
+        
+        # Создаем JWT токены
+        access_token = create_access_token(data={"sub": str(user.id)})
+        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        
+        # Формируем данные пользователя
+        user_dict = {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "balance": user.balance,
+            "respondent_code": user.respondent_code,
+            "created_at": user.created_at
+        }
+        
+        return access_token, refresh_token, user_dict

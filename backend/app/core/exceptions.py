@@ -45,6 +45,12 @@ class ErrorCodes:
     VERIFICATION_RATE_LIMIT = "VERIFY005"
     VERIFICATION_ALREADY_USED = "VERIFY006"
     
+    # OAuth & Temporary Tokens
+    OAUTH_INVALID_FRONTEND_ORIGIN = "OAUTH001"
+    OAUTH_TOKEN_NOT_FOUND = "OAUTH002"
+    OAUTH_TOKEN_EXPIRED = "OAUTH003"
+    OAUTH_TOKEN_ALREADY_USED = "OAUTH004"
+    
     # Validation
     VALIDATION_ERROR = "VALIDATION001"
     MISSING_REQUIRED_FIELD = "VALIDATION002"
@@ -303,6 +309,34 @@ class VerificationAlreadyUsedException(FelendException):
             status.HTTP_410_GONE,
             ErrorCodes.VERIFICATION_ALREADY_USED,
             {}
+        )
+
+
+# OAuth & Temporary Token Exceptions
+class InvalidFrontendOriginException(ValidationException):
+    def __init__(self, origin: str):
+        super().__init__(
+            f"Frontend origin not allowed: {origin}",
+            ErrorCodes.OAUTH_INVALID_FRONTEND_ORIGIN,
+            {"origin": origin}
+        )
+
+
+class TemporaryTokenNotFoundException(NotFoundException):
+    def __init__(self, token: str):
+        super().__init__(
+            "Temporary token not found",
+            ErrorCodes.OAUTH_TOKEN_NOT_FOUND,
+            {"token": token[:8] + "..." if len(token) > 8 else token}
+        )
+
+
+class TemporaryTokenExpiredException(AuthenticationException):
+    def __init__(self, token: str):
+        super().__init__(
+            "Temporary token has expired or already been used",
+            ErrorCodes.OAUTH_TOKEN_EXPIRED,
+            {"token": token[:8] + "..." if len(token) > 8 else token}
         )
 
 

@@ -14,7 +14,14 @@ class GoogleSettings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
     
-    # Области доступа для Google Forms API
+    # Области доступа для простой авторизации (без Google Forms)
+    GOOGLE_AUTH_SCOPES: List[str] = [
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+    ]
+    
+    # Области доступа для Google Forms API (для подключения аккаунта)
     GOOGLE_SCOPES: List[str] = [
         "openid",
         "https://www.googleapis.com/auth/userinfo.email",

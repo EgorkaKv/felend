@@ -440,3 +440,30 @@ class PasswordResetResponse(BaseModel):
     message: str
     user: dict  # Базовые данные пользователя
 
+
+# Google Auth schemas (для публичной авторизации/регистрации)
+class GoogleAuthInitRequest(BaseModel):
+    """Запрос на инициализацию Google OAuth flow"""
+    frontend_redirect_uri: HttpUrl = Field(..., description="Frontend URL для редиректа после авторизации")
+
+
+class GoogleAuthInitResponse(BaseModel):
+    """Ответ с URL для редиректа на Google OAuth"""
+    authorization_url: HttpUrl
+    message: str = "Redirect to Google for authentication"
+
+
+class ExchangeTokenRequest(BaseModel):
+    """Запрос на обмен одноразового токена на JWT"""
+    token: str = Field(..., description="Одноразовый токен из callback")
+
+
+class ExchangeTokenResponse(BaseModel):
+    """Ответ с JWT токенами после успешной авторизации через Google"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: UserProfile
+
+

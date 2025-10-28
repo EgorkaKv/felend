@@ -194,3 +194,18 @@ class EmailVerification(Base):
     
     # Связь с пользователем (опциональная)
     user = relationship("User")
+
+
+class OAuthTemporaryToken(Base):
+    """Модель для хранения одноразовых токенов для Google OAuth flow"""
+    __tablename__ = "oauth_temporary_tokens"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    token: Mapped[str] = mapped_column(String(36), unique=True, index=True, nullable=False)  # UUID4
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)  # TTL 5 минут
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    
+    # Связь с пользователем
+    user = relationship("User")

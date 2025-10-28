@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     
+    # Frontend allowed origins for Google OAuth redirect
+    ALLOWED_FRONTEND_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000"
+    
     # Rate limiting
     RATE_LIMIT_REQUESTS: int = 200
     RATE_LIMIT_WINDOW: int = 60  # seconds
@@ -56,6 +59,11 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS string into list"""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+    
+    @property
+    def allowed_frontend_origins_list(self) -> list[str]:
+        """Parse ALLOWED_FRONTEND_ORIGINS string into list for OAuth validation"""
+        return [origin.strip() for origin in self.ALLOWED_FRONTEND_ORIGINS.split(",") if origin.strip()]
     
     @property
     def get_database_url(self) -> str:
