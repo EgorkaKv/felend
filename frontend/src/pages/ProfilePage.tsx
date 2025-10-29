@@ -66,16 +66,29 @@ function ProfilePage() {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<ProfileFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: yupResolver(profileSchema) as any,
     defaultValues: {
-      full_name: userData?.full_name || '',
-      gender: userData?.demographic_data?.gender || '',
-      age: userData?.demographic_data?.age || '',
-      occupation: userData?.demographic_data?.occupation || '',
+      full_name: '',
+      gender: '',
+      age: '',
+      occupation: '',
     },
   });
+
+  // Обновление формы при загрузке данных пользователя
+  useEffect(() => {
+    if (userData) {
+      reset({
+        full_name: userData.full_name || '',
+        gender: userData.demographic_data?.gender || '',
+        age: userData.demographic_data?.age || '',
+        occupation: userData.demographic_data?.occupation || '',
+      });
+    }
+  }, [userData, reset]);
 
   const onSubmit = async (data: ProfileFormData) => {
     setSaving(true);

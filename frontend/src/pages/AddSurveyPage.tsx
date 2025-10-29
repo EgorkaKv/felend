@@ -37,7 +37,11 @@ const surveySchema = yup.object().shape({
       'URL должен быть ссылкой на Google Form'
     )
     .required('Google Form URL обязателен'),
-  google_account_id: yup.number().min(1, 'Выберите Google аккаунт').required('Google аккаунт обязателен'),
+  google_account_id: yup
+    .number()
+    .transform((value, originalValue) => (originalValue === '' ? undefined : value))
+    .min(1, 'Выберите Google аккаунт')
+    .required('Google аккаунт обязателен'),
   category: yup.string().required('Категория обязательна'),
   theme_color: yup.string().required('Цвет темы обязателен'),
   reward: yup.number().min(0, 'Награда не может быть отрицательной').optional(),
@@ -47,7 +51,7 @@ const surveySchema = yup.object().shape({
 
 type SurveyFormData = {
   google_form_url: string;
-  google_account_id: number;
+  google_account_id: number | '';
   category: string;
   theme_color: string;
   reward?: number;
@@ -75,7 +79,7 @@ const AddSurveyPage = () => {
     return data.google_accounts;
   });
   const googleAccounts = useMemo(
-    () => googleAccountsData || [],
+    () => (Array.isArray(googleAccountsData) ? googleAccountsData : []),
     [googleAccountsData]
   );
 
@@ -96,7 +100,7 @@ const AddSurveyPage = () => {
     resolver: yupResolver(surveySchema) as any,
     defaultValues: {
       google_form_url: '',
-      google_account_id: 0,
+      google_account_id: '',
       category: '',
       theme_color: themeColors[0].value,
       reward: undefined,
@@ -107,10 +111,10 @@ const AddSurveyPage = () => {
 
   // Автоматический выбор первого Google аккаунта
   useEffect(() => {
-    if (googleAccounts.length > 0 && !errors.google_account_id) {
+    if (googleAccounts.length > 0) {
       setValue('google_account_id', googleAccounts[0].id);
     }
-  }, [googleAccounts, setValue, errors.google_account_id]);
+  }, [googleAccounts, setValue]);
 
   const onSubmit = async (data: SurveyFormData) => {
     setLoading(true);
@@ -118,7 +122,7 @@ const AddSurveyPage = () => {
     try {
       const requestData: CreateSurveyRequest = {
         google_form_url: data.google_form_url,
-        google_account_id: data.google_account_id,
+        google_account_id: typeof data.google_account_id === 'number' ? data.google_account_id : 0,
         category: data.category,
         theme_color: data.theme_color,
         reward: data.reward,
@@ -207,7 +211,7 @@ const AddSurveyPage = () => {
               <FormControl fullWidth error={!!errors.google_account_id}>
                 <InputLabel>Google аккаунт</InputLabel>
                 <Select {...field} label="Google аккаунт" disabled={loading}>
-                  {googleAccounts.map((account: GoogleAccount) => (
+                  {Array.isArray(googleAccounts) && googleAccounts.map((account: GoogleAccount) => (
                     <MenuItem key={account.id} value={account.id}>
                       {account.email}
                       {account.is_primary && (
