@@ -14,6 +14,17 @@
 - [GET /surveys/{survey_id}/my-status](#get-surveyssurvey_idmy-status) - Get participation status
 - [GET /surveys/my-responses](#get-surveysmy-responses) - Get user's survey responses
 
+### Categories Support
+
+All survey endpoints now support categories for better organization and filtering:
+
+- **GET endpoints** (`/surveys`, `/surveys/my/`, etc.) now include a `categories` array in responses
+- **POST /surveys/my/** accepts optional `category_ids` array when creating surveys
+- **PUT /surveys/my/{id}** accepts optional `category_ids` array to update survey categories
+- Pass empty array `[]` to remove all categories from a survey
+- Only active categories can be assigned to surveys
+- See [Categories API](categories-api.md) for category management endpoints
+
 ---
 
 ### GET /surveys
@@ -46,7 +57,23 @@ GET /api/v1/surveys?skip=0&limit=10&search=student
     "responses_needed": 100,
     "questions_count": 12,
     "can_participate": true,
-    "my_responses_count": 0
+    "my_responses_count": 0,
+    "categories": [
+      {
+        "id": 1,
+        "name": "Образование",
+        "description": "Опросы, связанные с образованием, обучением и академической жизнью",
+        "is_active": true,
+        "created_at": "2025-10-29T10:00:00Z"
+      },
+      {
+        "id": 3,
+        "name": "Здоровье",
+        "description": "Опросы о здоровье, медицине, физической активности и благополучии",
+        "is_active": true,
+        "created_at": "2025-10-29T10:00:00Z"
+      }
+    ]
   },
   {
     "id": 2,
@@ -58,7 +85,8 @@ GET /api/v1/surveys?skip=0&limit=10&search=student
     "responses_needed": 150,
     "questions_count": 8,
     "can_participate": false,
-    "my_responses_count": 1
+    "my_responses_count": 1,
+    "categories": []
   }
 ]
 ```
@@ -138,7 +166,16 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     "total_spent": 460,
     "questions_count": 15,
     "collects_emails": true,
-    "created_at": "2025-10-20T10:30:00Z"
+    "created_at": "2025-10-20T10:30:00Z",
+    "categories": [
+      {
+        "id": 1,
+        "name": "Образование",
+        "description": "Опросы, связанные с образованием, обучением и академической жизнью",
+        "is_active": true,
+        "created_at": "2025-10-29T10:00:00Z"
+      }
+    ]
   }
 ]
 ```
@@ -317,9 +354,19 @@ Create a new survey. Requires authentication and sufficient balance.
   "google_form_url": "https://docs.google.com/forms/d/e/1FAIpQLSc.../viewform",
   "reward_per_response": 15,
   "responses_needed": 100,
-  "max_responses_per_user": 1
+  "max_responses_per_user": 1,
+  "category_ids": [1, 3]
 }
 ```
+
+**Request Body Parameters:**
+
+- `google_account_id` (integer, required): ID of Google account to use for creating the survey
+- `google_form_url` (string, required): URL of the Google Form
+- `reward_per_response` (integer, required): Points to award per response (min: 1, max: 50)
+- `responses_needed` (integer, optional): Target number of responses
+- `max_responses_per_user` (integer, optional, default: 1): Maximum responses per user (min: 1, max: 10)
+- `category_ids` (array of integers, optional): List of category IDs to assign to the survey
 
 **Response (201 Created):**
 
@@ -337,7 +384,23 @@ Create a new survey. Requires authentication and sufficient balance.
   "total_spent": 0,
   "questions_count": 12,
   "collects_emails": true,
-  "created_at": "2025-10-21T12:00:00Z"
+  "created_at": "2025-10-21T12:00:00Z",
+  "categories": [
+    {
+      "id": 1,
+      "name": "Образование",
+      "description": "Опросы, связанные с образованием, обучением и академической жизнью",
+      "is_active": true,
+      "created_at": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 3,
+      "name": "Здоровье",
+      "description": "Опросы о здоровье, медицине, физической активности и благополучии",
+      "is_active": true,
+      "created_at": "2025-10-29T10:00:00Z"
+    }
+  ]
 }
 ```
 
@@ -641,6 +704,158 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     "details": null,
     "timestamp": "2025-10-21T12:00:00Z",
     "path": "/api/v1/surveys/5/verify"
+  }
+}
+```
+
+---
+
+### PUT /surveys/my/{survey_id}
+
+Update an existing survey. Requires authentication and ownership of the survey.
+
+**Note:** Active surveys with responses can only update `status`, `responses_needed`, and `category_ids` fields.
+
+**Request:**
+
+```json
+{
+  "title": "Updated Survey Title",
+  "description": "Updated description",
+  "reward_per_response": 20,
+  "responses_needed": 150,
+  "max_responses_per_user": 2,
+  "status": "active",
+  "category_ids": [2, 5]
+}
+```
+
+**Request Body Parameters (all optional):**
+
+- `title` (string): Updated survey title
+- `description` (string): Updated survey description
+- `reward_per_response` (integer): Updated reward amount (min: 1, max: 50)
+- `responses_needed` (integer): Updated target number of responses
+- `max_responses_per_user` (integer): Updated max responses per user (min: 1, max: 10)
+- `status` (string): Survey status (`active`, `paused`, `completed`)
+- `category_ids` (array of integers): Updated list of category IDs (empty array removes all categories)
+
+**Response (200 OK):**
+
+```json
+{
+  "id": 10,
+  "title": "Updated Survey Title",
+  "description": "Updated description",
+  "status": "active",
+  "google_form_url": "https://docs.google.com/forms/d/e/1FAIpQLSc.../viewform",
+  "reward_per_response": 20,
+  "responses_needed": 150,
+  "max_responses_per_user": 2,
+  "total_responses": 23,
+  "total_spent": 460,
+  "questions_count": 12,
+  "collects_emails": true,
+  "created_at": "2025-10-21T12:00:00Z",
+  "categories": [
+    {
+      "id": 2,
+      "name": "Технологии",
+      "description": "Опросы о технологиях, IT, программировании и цифровых инструментах",
+      "is_active": true,
+      "created_at": "2025-10-29T10:00:00Z"
+    },
+    {
+      "id": 5,
+      "name": "Развлечения",
+      "description": "Опросы о фильмах, музыке, играх, хобби и развлечениях",
+      "is_active": true,
+      "created_at": "2025-10-29T10:00:00Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+
+**400 Bad Request - Invalid Category IDs:**
+
+```json
+{
+  "error": {
+    "message": "Invalid category IDs: some categories don't exist or are not active",
+    "code": "VALIDATION_ERROR",
+    "type": "ValidationException",
+    "details": {},
+    "timestamp": "2025-10-29T12:00:00Z",
+    "path": "/api/v1/surveys/my/10"
+  }
+}
+```
+
+**400 Bad Request - Cannot Modify Active Survey:**
+
+```json
+{
+  "error": {
+    "message": "Cannot modify active survey with responses",
+    "code": "VALIDATION_ERROR",
+    "type": "ValidationException",
+    "details": {
+      "allowed_fields": ["status", "responses_needed", "category_ids"],
+      "attempted_fields": ["title", "reward_per_response"]
+    },
+    "timestamp": "2025-10-29T12:00:00Z",
+    "path": "/api/v1/surveys/my/10"
+  }
+}
+```
+
+**401 Unauthorized - Not Authenticated:**
+
+```json
+{
+  "error": {
+    "message": "Not authenticated",
+    "code": "AUTH004",
+    "type": "NotAuthenticatedException",
+    "details": null,
+    "timestamp": "2025-10-29T12:00:00Z",
+    "path": "/api/v1/surveys/my/10"
+  }
+}
+```
+
+**403 Forbidden - Not Survey Owner:**
+
+```json
+{
+  "error": {
+    "message": "You are not the author of this survey",
+    "code": "AUTH003",
+    "type": "AuthorizationException",
+    "details": {
+      "survey_id": 10
+    },
+    "timestamp": "2025-10-29T12:00:00Z",
+    "path": "/api/v1/surveys/my/10"
+  }
+}
+```
+
+**404 Not Found - Survey Not Found:**
+
+```json
+{
+  "error": {
+    "message": "Survey not found",
+    "code": "SURVEY005",
+    "type": "SurveyNotFoundException",
+    "details": {
+      "survey_id": 999
+    },
+    "timestamp": "2025-10-29T12:00:00Z",
+    "path": "/api/v1/surveys/my/999"
   }
 }
 ```

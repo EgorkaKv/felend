@@ -76,7 +76,7 @@ async def google_connect(
         # Генерируем URL с полными scopes (включая Google Forms API)
         authorization_url = google_auth_service.get_authorization_url(
             state=state,
-            redirect_uri="http://localhost:8000/api/v1/google-accounts/callback"
+            redirect_uri="http://127.0.0.1:8000/api/v1/google-accounts/callback"
         )
 
         return {

@@ -23,6 +23,7 @@ from app.api.v1 import (
     surveys,
     participation,
     google_accounts,
+    categories,
 )
 
 # Настройка логирования
@@ -68,6 +69,7 @@ app.include_router(surveys.router, prefix="/api/v1")
 app.include_router(google_auth.router, prefix="/api/v1")
 app.include_router(google_accounts.router, prefix="/api/v1")
 app.include_router(participation.router, prefix="/api/v1")
+app.include_router(categories.router, prefix="/api/v1")
 
 
 # Базовые эндпоинты

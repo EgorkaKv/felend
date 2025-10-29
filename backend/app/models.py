@@ -1,9 +1,9 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SQLEnum, JSON
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SQLEnum, JSON, Table
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class TransactionType(enum.Enum):
@@ -87,6 +87,42 @@ class GoogleAccount(Base):
     surveys = relationship("Survey", back_populates="google_account")
 
 
+# Association table для many-to-many связи между Survey и Category
+survey_categories = Table(
+    'survey_categories',
+    Base.metadata,
+    Column('survey_id', Integer, ForeignKey('surveys.id', ondelete='CASCADE'), primary_key=True),
+    Column('category_id', Integer, ForeignKey('categories.id', ondelete='CASCADE'), primary_key=True),
+    Column('created_at', DateTime(timezone=True), server_default=func.now())
+)
+
+
+class Category(Base):
+    __tablename__ = "categories"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    
+    # Связь many-to-many с Survey
+    surveys: Mapped[List["Survey"]] = relationship(
+        "Survey",
+        secondary=survey_categories,
+        back_populates="categories"
+    )
+    
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class Survey(Base):
     __tablename__ = "surveys"
     
@@ -122,6 +158,11 @@ class Survey(Base):
     google_account = relationship("GoogleAccount", back_populates="surveys")
     responses = relationship("SurveyResponse", back_populates="survey")
     transactions = relationship("BalanceTransaction", foreign_keys="BalanceTransaction.related_survey_id", back_populates="related_survey")
+    categories: Mapped[List["Category"]] = relationship(
+        "Category",
+        secondary=survey_categories,
+        back_populates="surveys"
+    )
 
 
 class SurveyResponse(Base):

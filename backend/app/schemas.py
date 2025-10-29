@@ -4,6 +4,25 @@ from datetime import datetime
 from app.models import SurveyStatus, TransactionType
 
 
+# Category schemas
+class CategoryResponse(BaseModel):
+    """Схема ответа для категории"""
+    id: int
+    name: str
+    description: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    class ConfigDict:
+        from_attributes = True
+
+
+class CategoryListResponse(BaseModel):
+    """Список категорий"""
+    categories: List[CategoryResponse]
+    total: int
+
+
 # Auth schemas
 class UserRegister(BaseModel):
     email: EmailStr
@@ -87,6 +106,7 @@ class SurveyCreate(BaseModel):
     reward_per_response: int = Field(..., ge=1, le=50)
     responses_needed: Optional[int] = Field(None, ge=1)
     max_responses_per_user: int = Field(1, ge=1, le=10)
+    category_ids: Optional[List[int]] = Field(None, description="Список ID категорий для опроса")
     # collects_emails: bool = True
 
 
@@ -97,6 +117,7 @@ class SurveyUpdate(BaseModel):
     responses_needed: Optional[int] = Field(None, ge=1)
     max_responses_per_user: Optional[int] = Field(None, ge=1, le=10)
     status: Optional[SurveyStatus] = None
+    category_ids: Optional[List[int]] = Field(None, description="Список ID категорий для опроса")
 
 
 class SurveyListItem(BaseModel):
@@ -110,6 +131,7 @@ class SurveyListItem(BaseModel):
     questions_count: int
     can_participate: bool
     my_responses_count: int
+    categories: List[CategoryResponse] = []
 
     class ConfigDict:
         from_attributes = True
@@ -130,6 +152,7 @@ class SurveyDetail(BaseModel):
     can_participate: bool
     my_responses_count: int
     created_at: datetime
+    categories: List[CategoryResponse] = []
 
     class ConfigDict:
         from_attributes = True
@@ -149,6 +172,7 @@ class MySurveyDetail(BaseModel):
     questions_count: int
     collects_emails: bool
     created_at: datetime
+    categories: List[CategoryResponse] = []
 
     class ConfigDict:
         from_attributes = True

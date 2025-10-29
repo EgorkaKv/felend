@@ -4,6 +4,7 @@ import re
 from app.models import GoogleAccount, Survey, SurveyStatus, User
 from app.repositories.survey_repository import SurveyRepository, survey_repository
 from app.repositories.user_repository import UserRepository, user_repository
+from app.repositories.category_repository import category_repository
 from app.services.google_accounts_service import GoogleAccountsService
 from app.schemas import (
     GoogleForm,
@@ -12,6 +13,7 @@ from app.schemas import (
     SurveyListItem,
     SurveyDetail,
     MySurveyDetail,
+    CategoryResponse,
 )
 from app.core.exceptions import (
     SurveyNotFoundException,
@@ -48,6 +50,11 @@ class SurveyService:
                 survey_data.reward_per_response, author.balance, author.id
             )
 
+        # Валидация категорий
+        if survey_data.category_ids:
+            if not category_repository.validate_category_ids(self.db, survey_data.category_ids):
+                raise ValidationException("Invalid category IDs: some categories don't exist or are not active")
+
         survey = Survey(
             title=form.info.title,
             description=form.info.description,
@@ -63,6 +70,13 @@ class SurveyService:
         )
 
         self.db.add(survey)
+        self.db.flush()  # Получаем ID опроса до commit
+        
+        # Привязываем категории
+        if survey_data.category_ids:
+            categories = category_repository.get_active_by_ids(self.db, survey_data.category_ids)
+            survey.categories = categories
+        
         self.db.commit()
         self.db.refresh(survey)
         return survey
@@ -100,6 +114,7 @@ class SurveyService:
                 questions_count=survey.questions_count,
                 can_participate=can_participate,
                 my_responses_count=my_responses_count,
+                categories=[CategoryResponse.model_validate(cat, from_attributes=True) for cat in survey.categories],
             )
             result.append(survey_item)
         return result
@@ -163,6 +178,7 @@ class SurveyService:
             can_participate=can_participate,
             my_responses_count=my_responses_count,
             created_at=survey.created_at,
+            categories=[CategoryResponse.model_validate(cat, from_attributes=True) for cat in survey.categories],
         )
 
     def get_my_surveys(
@@ -197,6 +213,7 @@ class SurveyService:
                 questions_count=survey.questions_count,
                 collects_emails=survey.collects_emails,
                 created_at=survey.created_at,
+                categories=[CategoryResponse.model_validate(cat, from_attributes=True) for cat in survey.categories],
             )
             result.append(my_survey)
         return result
@@ -223,6 +240,7 @@ class SurveyService:
             questions_count=survey.questions_count,
             collects_emails=survey.collects_emails,
             created_at=survey.created_at,
+            categories=[CategoryResponse.model_validate(cat, from_attributes=True) for cat in survey.categories],
         )
 
     def update_survey(
@@ -235,10 +253,20 @@ class SurveyService:
         if survey.author_id != user_id:
             raise AuthorizationException("You are not the author of this survey")
         if survey.status == SurveyStatus.ACTIVE and survey.total_responses > 0:
-            allowed_fields = {"status", "responses_needed"}
+            allowed_fields = {"status", "responses_needed", "category_ids"}
             update_data = survey_update.model_dump(exclude_unset=True)
             if not set(update_data.keys()).issubset(allowed_fields):
                 raise ValidationException("Cannot modify active survey with responses")
+        
+        # Валидация категорий если они обновляются
+        if survey_update.category_ids is not None:
+            if survey_update.category_ids and not category_repository.validate_category_ids(self.db, survey_update.category_ids):
+                raise ValidationException("Invalid category IDs: some categories don't exist or are not active")
+            
+            # Обновляем категории
+            categories = category_repository.get_active_by_ids(self.db, survey_update.category_ids) if survey_update.category_ids else []
+            survey.categories = categories
+        
         updated_survey = self.survey_repo.update(self.db, survey, survey_update)
         return updated_survey
 
